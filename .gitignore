@@ -1,0 +1,15 @@
+# Go binary files
+*.exe
+*.out
+
+# Go build artifacts
+*.o
+*.a
+
+# IDE and editor-specific files
+.idea/
+.vscode/
+
+# Compiled output directories
+/bin/
+/pkg/
