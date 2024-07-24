@@ -1,11 +1,12 @@
 package tests
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"testingGoBlueprint/internal/server"
+
+	"github.com/gin-gonic/gin"
+	"github.com/venturarome/DaftWatch/internal/server"
 )
 
 func TestHelloWorldHandler(t *testing.T) {
