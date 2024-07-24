@@ -1,6 +1,7 @@
 # Go binary files
 *.exe
 *.out
+main
 
 # Go build artifacts
 *.o
