@@ -106,7 +106,7 @@ func (self *Criteria) mapLocation() string {
 }
 
 // TODO create a DaftMapper.
-func (self *Criteria) mapPropertyType() string {
+func (criteria *Criteria) mapPropertyType() string {
 	allowedPropertyTypes := map[string]string{
 		// DaftWatch: Daft
 		"houses":        "houses",
@@ -115,16 +115,16 @@ func (self *Criteria) mapPropertyType() string {
 		"holiday_homes": "holiday-homes",
 		// TODO fill all options
 	}
-	return allowedPropertyTypes[self.propertyType]
+	return allowedPropertyTypes[criteria.propertyType]
 }
 
-func (self *Criteria) buildQueryParams() string {
-	if len(self.filters) == 0 {
+func (criteria *Criteria) buildQueryParams() string {
+	if len(criteria.filters) == 0 {
 		return ""
 	}
 
 	queryParams := "?"
-	for _, filter := range self.filters {
+	for _, filter := range criteria.filters {
 		queryParams += fmt.Sprintf("%s=%s&", filter.key, filter.value)
 	}
 	return queryParams[:len(queryParams)-1]

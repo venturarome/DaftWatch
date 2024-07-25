@@ -14,3 +14,6 @@ main
 # Compiled output directories
 /bin/
 /pkg/
+
+# Keep .env file data in local
+.env
