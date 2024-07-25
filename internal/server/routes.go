@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/venturarome/DaftWatch/internal/handler/api"
 	"github.com/venturarome/DaftWatch/internal/scraper"
 )
 
@@ -21,7 +22,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	router.GET("/health", s.healthHandler)
 
-	router.GET("/search", s.searchHandler)
+	router.GET("/search", api.Search)
 
 	router.Static("/images", "./images")
 
