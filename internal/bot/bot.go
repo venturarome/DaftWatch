@@ -84,13 +84,14 @@ func StartLongPolling(bot *tgbotapi.BotAPI) {
 
 		// Create a new MessageConfig. We don't have text yet, so we leave it empty.
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		var clearContext bool
 
 		// Extract the command from the Message.
 		switch update.Message.Command() {
 		case "help":
 			msg.Text = "I understand /createalert, /sayhi and /status."
 		case "createalert":
-			msg = telegramhandler.HandleCreateAlert(bot, update)
+			msg, clearContext = telegramhandler.HandleCreateAlert(bot, update)
 		case "sayhi":
 			msg.Text = fmt.Sprintf("Hi %s :)", update.Message.From.FirstName)
 		case "status":
@@ -104,6 +105,11 @@ func StartLongPolling(bot *tgbotapi.BotAPI) {
 			msg.Text = "You took too long to finish your previous command. Please, start again."
 		default:
 			msg.Text = "I don't know that command, sorry!"
+		}
+
+		if clearContext {
+			delete(userContext, userId)
+			delete(userTimestampContext, userId)
 		}
 
 		if _, err := bot.Send(msg); err != nil {

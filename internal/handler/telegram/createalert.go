@@ -9,10 +9,7 @@ import (
 
 // TODO maybe it's a good idea to rename the parent folder to 'process'
 
-//var createAlertSteps = InitSteps([]string{"searchType", "location", "maxPrice"})
-
 // TODO create a util func to create the keyboard given the list of strings and an array with the buttons per row
-
 var searchTypeKeyboard = tgbotapi.NewReplyKeyboard(
 	tgbotapi.NewKeyboardButtonRow(
 		tgbotapi.NewKeyboardButton("Buy"),
@@ -74,7 +71,16 @@ var maxPriceKeyboard = map[string]tgbotapi.ReplyKeyboardMarkup{
 	),
 }
 
-func HandleCreateAlert(bot *tgbotapi.BotAPI, update tgbotapi.Update) tgbotapi.MessageConfig {
+var minBedroomsKeyboard = tgbotapi.NewReplyKeyboard(
+	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton("1"),
+		tgbotapi.NewKeyboardButton("2"),
+		tgbotapi.NewKeyboardButton("3"),
+		tgbotapi.NewKeyboardButton("4"),
+	),
+)
+
+func HandleCreateAlert(bot *tgbotapi.BotAPI, update tgbotapi.Update) (msg tgbotapi.MessageConfig, clearContext bool) {
 	if update.Message == nil { // panic on non-Message updates
 		panic("Received non-Message Update")
 	}
@@ -86,7 +92,7 @@ func HandleCreateAlert(bot *tgbotapi.BotAPI, update tgbotapi.Update) tgbotapi.Me
 
 	fmt.Println("[DEBUG] createalert > received: ", update.Message.Text)
 
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+	msg = tgbotapi.NewMessage(update.Message.Chat.ID, "")
 
 	commandParts := strings.Split(update.Message.Text, " ")
 	switch len(commandParts) {
@@ -106,14 +112,23 @@ func HandleCreateAlert(bot *tgbotapi.BotAPI, update tgbotapi.Update) tgbotapi.Me
 		msg.ReplyMarkup = maxPriceKeyboard[commandParts[1]]
 	case 4:
 		// /createalert <searchType> <location> <maxPrice>
-		// TODO validate location
+		// TODO validate maxPrice
+		msg.Text = "Which is the minimum number of bedrooms?"
+		msg.ReplyMarkup = minBedroomsKeyboard
+	case 5:
+		// /createalert <searchType> <location> <maxPrice> <minBedrooms>
+		// TODO validate minBedrooms
 		// TODO:
 		//  1. Scrape Daft with criteria.
 		//  2. Create alert in DB.
 		//  3. Reply with elements matching criteria right now.
 		msg.Text = "Great! Alert created! I'll send you a message as soon as a new listing appears!"
 		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+		clearContext = true
+	default:
+		msg.Text = "An error occurred."
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+		clearContext = true
 	}
-
-	return msg
+	return
 }
