@@ -12,9 +12,9 @@ func main() {
 	telegramBot := bot.InitTelegramBot()
 	go bot.StartLongPolling(telegramBot)
 
-	server := server.NewServer()
+	server := server.InstanceServer()
 	err := server.ListenAndServe()
 	if err != nil {
-		panic(fmt.Sprintf("cannot start server: %s", err))
+		panic(fmt.Sprintf("Server error: %s", err))
 	}
 }
