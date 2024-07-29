@@ -13,7 +13,7 @@ import (
 const HTTP_SECURE string = "https://"
 const BASE_URL_DAFT string = "www.daft.ie"
 
-func Scrape(url string) map[string]model.Property {
+func Scrape(criteria Criteria) map[string]model.Property {
 	fmt.Println("Entering scraper::Scrape")
 
 	// Map to store scraped data
@@ -21,7 +21,7 @@ func Scrape(url string) map[string]model.Property {
 
 	// Main page collector
 	mainCollector := colly.NewCollector(
-		colly.AllowedDomains( /*"daft.ie",*/ BASE_URL_DAFT),
+		colly.AllowedDomains(BASE_URL_DAFT),
 		colly.DetectCharset(),
 	)
 
@@ -51,24 +51,10 @@ func Scrape(url string) map[string]model.Property {
 	mainCollector.OnHTML("li[class^='SearchPagestyled__Result-sc-'] a", func(e *colly.HTMLElement) {
 		fmt.Println("Entering scraper::Scrape[mainCollector::OnHTML]")
 		// This gets every URI to the first 20 properties matching the criteria.
-
-		// propertyUrl := BASE_URL_DAFT + e.Attr("href")
-		// propertyId := path.Base(propertyUrl)
-
-		// TODO comprobar si hay que añadir el https://
 		absolutePropertyUrl := e.Request.AbsoluteURL(e.Attr("href"))
 		propertyCollector.Visit(absolutePropertyUrl)
-		propertyCollector.Wait()
+		//propertyCollector.Wait()
 
-		// propertyIdUrlMap[propertyId] = propertyUrl
-
-		// c_property.Visit(propertyUrl)
-
-		// sc := &PropertyScraper{}
-
-		// pp := sc.Scrape(propertyUrl)
-		// fmt.Println(pp)
-		// propertyIdUrlMap[propertyId] = pp
 		// We still need to navigate to "next page" and list every property.
 	})
 	mainCollector.OnScraped(func(r *colly.Response) {
@@ -101,28 +87,24 @@ func Scrape(url string) map[string]model.Property {
 	})
 	propertyCollector.OnHTML("div[class^='styles__MainColumn-sc-']", func(e *colly.HTMLElement) {
 		fmt.Println("Entering scraper::Scrape[propertyCollector::OnHTML]")
+
+		// Some links go to "developments" containing several "properties".
+		// In that case, visit each property individually.
+		subUnitsText := e.ChildText("div[data-testid='sub-units'] h3")
+		if subUnitsText != "" {
+			e.ForEach("div[data-testid='sub-units'] a[data-testid='sub-unit']", func(i int, e *colly.HTMLElement) {
+				absolutePropertyUrl := e.Request.AbsoluteURL(e.Attr("href"))
+				propertyCollector.Visit(absolutePropertyUrl)
+			})
+			return
+		}
+
 		property := model.Property{}
 
-		// URL
 		property.Url = e.Request.URL.String()
-
-		// ADDRESS
-		address := e.ChildText("h1[data-testid='address']")
-		fmt.Println("Address: ", address)
-		property.Address = address
-
-		// PRICE
-		priceText := e.ChildText("div[data-testid='price'] h2") // "€1,800 per month"
-		price, _ := extractPrice(priceText)
-		//property.price = uint16(price)
-		fmt.Println("Price: ", price)
-		property.Price = price
-
-		// TYPE
-		propertyType := e.ChildText("p[data-testid='property-type']")
-		property.Type = propertyType
-
-		// OVERVIEW
+		property.Address = e.ChildText("h1[data-testid='address']")
+		property.Price, _ = extractPrice(e.ChildText("div[data-testid='price'] h2"))
+		property.Type = e.ChildText("p[data-testid='property-type']")
 		e.ForEach("div[data-testid='overview'] ul li", func(i int, e *colly.HTMLElement) {
 			infoKey := e.ChildText("span")
 			switch infoKey {
@@ -139,28 +121,12 @@ func Scrape(url string) map[string]model.Property {
 			case "Lease":
 				property.LeaseType = extractLeaseType(e.Text)
 			}
-			// fmt.Println(e.ChildText("span"))
-			// fmt.Println("Overview info: ", e.Text)
-
-			// item := Product{}
-			// item.Name = h.Text
-			// item.Image = e.ChildAttr("img", "data-src")
-			// item.Price = e.Attr("data-price")
-			// item.Url = "https://jumia.com.ng" + e.Attr("href")
-			// item.Discount = e.ChildText("div.tag._dsct")
-			// products = append(products, item)
 		})
-
-		// DESCRIPTION
-		description := e.ChildText("div[data-testid='description'] div[data-testid='description']")
-		property.Description = description
-
-		// ListingId
+		property.Description = e.ChildText("div[data-testid='description'] div[data-testid='description']")
 		property.ListingId = path.Base(property.Url)
 
 		// Store property
 		propertyIdUrlMap[property.ListingId] = property
-		fmt.Println("Property stored in map")
 	})
 	propertyCollector.OnScraped(func(r *colly.Response) {
 		fmt.Println("Entering scraper::Scrape[propertyCollector::OnScraped]")
@@ -170,12 +136,15 @@ func Scrape(url string) map[string]model.Property {
 		fmt.Printf("Error: %s", err)
 	})
 
+	url, err := criteria.buildQuery(HTTP_SECURE + BASE_URL_DAFT)
+	if err != nil {
+		return nil
+	}
+
+	fmt.Println("Reconstructed URL from criteria: ", url)
+
 	// Entry point to start collecting/scraping
-	//c_list.Visit(HTTP_SECURE + BASE_URL_DAFT + "/property-for-rent/dublin-9-dublin?rentalPrice_to=2000")
-	mainCollector.Visit(HTTP_SECURE + BASE_URL_DAFT + url)
-	//mainCollector.Visit(HTTP_SECURE + url)
-	//mainCollector.Visit(url)
-	mainCollector.Wait()
+	mainCollector.Visit(url)
 
 	return propertyIdUrlMap
 }

@@ -63,7 +63,7 @@ func (dbClient *mongoDbClient) Health() map[string]string {
 func (dbClient *mongoDbClient) CountProperties() map[string]int64 {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	numDocs, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").CountDocuments(ctx, nil)
+	numDocs, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").CountDocuments(ctx, bson.D{{}})
 	if err != nil {
 		log.Fatalf(fmt.Sprintf("Error on CountProperties() method: %v", err))
 	}
@@ -103,6 +103,54 @@ func (dbClient *mongoDbClient) CreateProperty() map[string]string {
 	}
 }
 
+func (dbClient *mongoDbClient) CreateProperties() map[string]string {
+	property1 := model.Property{
+		Url:               "https://url-test-1.com",
+		Address:           "my keli1",
+		Price:             1234,
+		Type:              "Studio",
+		NumDoubleBedrooms: 2,
+		NumBathrooms:      1,
+		Furnished:         true,
+		LeaseType:         "minimum 1 lifetime",
+		Description:       "this should be  very long description",
+		ListingId:         "123456",
+	}
+	property2 := model.Property{
+		Url:               "https://url-test-2.com",
+		Address:           "my keli",
+		Price:             1234,
+		Type:              "Studio",
+		NumDoubleBedrooms: 2,
+		NumBathrooms:      1,
+		Furnished:         true,
+		LeaseType:         "minimum 1 lifetime",
+		Description:       "this should be  very long description",
+		ListingId:         "123457",
+	}
+
+	properties := []interface{}{
+		property1,
+		property2,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").InsertMany(ctx, properties)
+	if res == nil {
+		log.Fatalf(fmt.Sprintf("Error on CreateProperties() method: %v", err))
+	}
+
+	// ret := make(map[string]string)
+	// for i, id := range res.InsertedIDs {
+	// 	// TODO if needed.
+	// }
+
+	return map[string]string{
+		"inserted": "ok",
+	}
+}
+
 func (dbClient *mongoDbClient) DeleteProperties() map[string]int64 {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -116,18 +164,8 @@ func (dbClient *mongoDbClient) DeleteProperties() map[string]int64 {
 	}
 }
 
-func (dbClient *mongoDbClient) CreateProperties() map[string]string {
-	// TODO
-
-	// Other example:
-	// // Send a ping to confirm a successful connection
-	// if err := client.Database("admin").RunCommand(context.TODO(), bson.D{{"ping", 1}}).Err(); err != nil {
-	// 	panic(err)
-	// 	}
-	// 	fmt.Println("Pinged your deployment. You successfully connected to MongoDB!")
-	return map[string]string{
-		"TODO": "TODO",
-	}
+func (dbClient *mongoDbClient) FindPropertiesByListingIds() []model.Property {
+	return make([]model.Property, 0)
 }
 
 func (dbClient *mongoDbClient) CreateAlert() map[string]string {

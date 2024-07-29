@@ -5,9 +5,8 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/venturarome/DaftWatch/internal/scraper"
 )
-
-// TODO maybe it's a good idea to rename the parent folder to 'process'
 
 // TODO create a util func to create the keyboard given the list of strings and an array with the buttons per row
 var searchTypeKeyboard = tgbotapi.NewReplyKeyboard(
@@ -103,7 +102,7 @@ func HandleCreateAlert(bot *tgbotapi.BotAPI, update tgbotapi.Update) (msg tgbota
 	case 2:
 		// /createalert <searchType>
 		// TODO validate searchType
-		msg.Text = "Where are you looking for?"
+		msg.Text = "In which city are you looking for?"
 		msg.ReplyMarkup = locationKeyboard
 	case 3:
 		// /createalert <searchType> <location>
@@ -119,8 +118,25 @@ func HandleCreateAlert(bot *tgbotapi.BotAPI, update tgbotapi.Update) (msg tgbota
 		// /createalert <searchType> <location> <maxPrice> <minBedrooms>
 		// TODO validate minBedrooms
 		// TODO:
-		//  1. Scrape Daft with criteria.
+		//  1. Scrape Daft with criteria (if possible, asynchronously)
+		criteria := scraper.Criteria{
+			SearchType: strings.ToLower(commandParts[1]),
+			Location:   strings.ToLower(commandParts[2]),
+			Filters: []scraper.Filter{
+				{
+					Key:   "maxPrice",
+					Value: strings.ToLower(commandParts[3]),
+				},
+				{
+					Key:   "minBedrooms",
+					Value: strings.ToLower(commandParts[4]),
+				},
+			},
+		}
+		scraper.Scrape(criteria)
+
 		//  2. Create alert in DB.
+
 		//  3. Reply with elements matching criteria right now.
 		msg.Text = "Great! Alert created! I'll send you a message as soon as a new listing appears!"
 		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)

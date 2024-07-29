@@ -41,6 +41,8 @@ func (h *ApiHandler) RegisterRoutes() {
 	h.engine.GET("/health", h.HealthHandler)
 
 	h.engine.GET("/create_property", h.CreatePropertyHandler)
+	h.engine.GET("/create_properties", h.CreatePropertiesHandler)
+	h.engine.GET("/count_properties", h.CountPropertiesHandler)
 	h.engine.GET("/delete_properties", h.DeletePropertiesHandler) // To delete testing data
 
 	h.engine.GET("/search", h.SearchHandler) // TODO continue here!!!
