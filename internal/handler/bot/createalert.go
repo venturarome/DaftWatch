@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/venturarome/DaftWatch/internal/model"
 	"github.com/venturarome/DaftWatch/internal/scraper"
+	"github.com/venturarome/DaftWatch/internal/utils"
 )
 
 // TODO create a util func to create the keyboard given the list of strings and an array with the buttons per row
@@ -79,8 +81,8 @@ var minBedroomsKeyboard = tgbotapi.NewReplyKeyboard(
 	),
 )
 
-func HandleCreateAlert(bot *tgbotapi.BotAPI, update tgbotapi.Update) (msg tgbotapi.MessageConfig, clearContext bool) {
-	if update.Message == nil { // panic on non-Message updates
+func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbotapi.MessageConfig, clearContext bool) {
+	if update.Message == nil {
 		panic("Received non-Message Update")
 	}
 
@@ -89,11 +91,13 @@ func HandleCreateAlert(bot *tgbotapi.BotAPI, update tgbotapi.Update) (msg tgbota
 		panic("Badly routed Message Update")
 	}
 
-	fmt.Println("[DEBUG] createalert > received: ", update.Message.Text)
+	fmt.Println("[DEBUG] createalert > received: ", messageText)
 
-	msg = tgbotapi.NewMessage(update.Message.Chat.ID, "")
+	userId := update.Message.From.ID
+	chatId := update.Message.Chat.ID
+	msg = tgbotapi.NewMessage(chatId, "")
 
-	commandParts := strings.Split(update.Message.Text, " ")
+	commandParts := strings.Split(messageText, " ")
 	switch len(commandParts) {
 	case 1:
 		// /createalert
@@ -118,24 +122,44 @@ func HandleCreateAlert(bot *tgbotapi.BotAPI, update tgbotapi.Update) (msg tgbota
 		// /createalert <searchType> <location> <maxPrice> <minBedrooms>
 		// TODO validate minBedrooms
 		// TODO:
+		//  0. Extract all pieces of information
+		searchType := strings.ToLower(commandParts[1])
+		location := strings.ToLower(commandParts[2])
+		maxPrice := strings.ToLower(commandParts[3])
+		minBedrooms := strings.ToLower(commandParts[4])
+
 		//  1. Scrape Daft with criteria (if possible, asynchronously)
 		criteria := scraper.Criteria{
-			SearchType: strings.ToLower(commandParts[1]),
-			Location:   strings.ToLower(commandParts[2]),
+			SearchType: searchType,
+			Location:   location,
 			Filters: []scraper.Filter{
 				{
 					Key:   "maxPrice",
-					Value: strings.ToLower(commandParts[3]),
+					Value: maxPrice,
 				},
 				{
 					Key:   "minBedrooms",
-					Value: strings.ToLower(commandParts[4]),
+					Value: minBedrooms,
 				},
 			},
 		}
-		scraper.Scrape(criteria)
+		scraper.Scrape(criteria) // TODO probar a poner 'go' al inicio.
 
 		//  2. Create alert in DB.
+		user := model.User{
+			TelegramId:     userId,
+			TelegramChatId: chatId,
+		}
+		uMaxPrice, _ := utils.StringToUint16(maxPrice)
+		uMinBedrooms, _ := utils.StringToUint16(minBedrooms)
+		alert := model.Alert{
+			SearchType:  searchType,
+			Location:    location,
+			MaxPrice:    uMaxPrice,
+			MinBedrooms: uMinBedrooms,
+		}
+
+		th.dbClient.CreateAlertForUser(alert, user)
 
 		//  3. Reply with elements matching criteria right now.
 		msg.Text = "Great! Alert created! I'll send you a message as soon as a new listing appears!"

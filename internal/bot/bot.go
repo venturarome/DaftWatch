@@ -5,38 +5,48 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	telegramhandler "github.com/venturarome/DaftWatch/internal/handler/telegram"
+	bh "github.com/venturarome/DaftWatch/internal/handler/bot"
 )
 
-// type Bot struct {
-// 	bot *tgbotapi.BotAPI
-// }
+type Bot struct {
+	BotApi               *tgbotapi.BotAPI
+	Handler              *bh.TelegramHandler
+	userContext          map[int64]string
+	userTimestampContext map[int64]int64 // TODO try Redis/Memcached
+	contextTtl           int64           // TODO ¿maybe use time.Duration?
+}
 
-func InitTelegramBot() *tgbotapi.BotAPI {
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_APITOKEN"))
+func InstanceTelegramBot() *Bot {
+	tgBotApi, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_APITOKEN"))
 	if err != nil {
 		log.Panic(err)
 	}
+	tgBotApi.Debug = os.Getenv("TELEGRAM_MODE") != "release"
+	log.Printf("Authorized on account %s", tgBotApi.Self.UserName)
 
-	bot.Debug = os.Getenv("TELEGRAM_MODE") != "release"
+	tgHandler := bh.InstanceHandler()
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	bot := Bot{
+		BotApi:               tgBotApi,
+		Handler:              tgHandler,
+		userContext:          make(map[int64]string),
+		userTimestampContext: make(map[int64]int64),
+		contextTtl:           600, // 10 minutes
+	}
 
-	return bot
+	go bot.periodicContextCleanup()
+
+	return &bot
 }
 
-var userContext map[int64]string = make(map[int64]string)
-var userTimestampContext map[int64]int = make(map[int64]int)
-
-const CONTEXT_TTL int = 600 // 10 minutes
-
-func StartLongPolling(bot *tgbotapi.BotAPI) {
+func (bot *Bot) StartLongPolling() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 50 // 50 sec is, apparently, maximum allowed
 
-	updates := bot.GetUpdatesChan(u)
+	updates := bot.BotApi.GetUpdatesChan(u)
 
 	for update := range updates {
 		if update.Message == nil { // ignore any non-Message updates
@@ -44,7 +54,7 @@ func StartLongPolling(bot *tgbotapi.BotAPI) {
 		}
 
 		userId := update.Message.From.ID
-		currentTimestamp := update.Message.Date
+		currentTimestamp := int64(update.Message.Date)
 		currentText := strings.Trim(update.Message.Text, " ")
 
 		// DEBUG
@@ -52,21 +62,21 @@ func StartLongPolling(bot *tgbotapi.BotAPI) {
 
 		if !update.Message.IsCommand() {
 			// Probably it comes from a multistep command. Let's check out "in-memory database".
-			storedCommand, found := userContext[userId]
-			lastInteractionTimestamp := userTimestampContext[userId]
+			storedCommand, found := bot.userContext[userId]
+			lastInteractionTimestamp := bot.userTimestampContext[userId]
 			if !found {
 				// No user context.
 				update.Message.Text = "/nocommand"
-			} else if currentTimestamp-lastInteractionTimestamp > CONTEXT_TTL {
+			} else if currentTimestamp-lastInteractionTimestamp > bot.contextTtl {
 				// Outdated user context.
-				delete(userContext, userId)
-				delete(userTimestampContext, userId)
+				delete(bot.userContext, userId)
+				delete(bot.userTimestampContext, userId)
 				update.Message.Text = "/outdatedcommand"
 			} else {
 				// There was a valid context. Update and use it.
 				updatedCommand := storedCommand + " " + currentText
-				userContext[userId] = updatedCommand
-				userTimestampContext[userId] = currentTimestamp
+				bot.userContext[userId] = updatedCommand
+				bot.userTimestampContext[userId] = currentTimestamp
 				update.Message.Text = updatedCommand
 			}
 			// HACK: "fake" received update.Message.Entities to seem a command:
@@ -78,8 +88,8 @@ func StartLongPolling(bot *tgbotapi.BotAPI) {
 			update.Message.Entities = append(update.Message.Entities, me)
 		} else {
 			// Message is a command. Update cache.
-			userContext[userId] = currentText
-			userTimestampContext[userId] = currentTimestamp
+			bot.userContext[userId] = currentText
+			bot.userTimestampContext[userId] = currentTimestamp
 		}
 
 		// Create a new MessageConfig. We don't have text yet, so we leave it empty.
@@ -90,8 +100,10 @@ func StartLongPolling(bot *tgbotapi.BotAPI) {
 		switch update.Message.Command() {
 		case "help":
 			msg.Text = "I understand /createalert, /sayhi and /status."
+		case "myalerts":
+			msg, clearContext = bot.Handler.HandleMyAlerts(update)
 		case "createalert":
-			msg, clearContext = telegramhandler.HandleCreateAlert(bot, update)
+			msg, clearContext = bot.Handler.HandleCreateAlert(update)
 		case "sayhi":
 			msg.Text = fmt.Sprintf("Hi %s :)", update.Message.From.FirstName)
 		case "status":
@@ -108,12 +120,24 @@ func StartLongPolling(bot *tgbotapi.BotAPI) {
 		}
 
 		if clearContext {
-			delete(userContext, userId)
-			delete(userTimestampContext, userId)
+			delete(bot.userContext, userId)
+			delete(bot.userTimestampContext, userId)
 		}
 
-		if _, err := bot.Send(msg); err != nil {
+		if _, err := bot.BotApi.Send(msg); err != nil {
 			log.Panic(err)
+		}
+	}
+}
+
+func (bot *Bot) periodicContextCleanup() {
+	// Clean all context expired values to avoid massive growth of junk data.
+	time.Sleep(time.Hour)
+	currentTimestamp := time.Now().Unix()
+	for userId, contextTimestamp := range bot.userTimestampContext {
+		if currentTimestamp-contextTimestamp > bot.contextTtl {
+			delete(bot.userContext, userId)
+			delete(bot.userTimestampContext, userId)
 		}
 	}
 }

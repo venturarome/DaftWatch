@@ -8,9 +8,8 @@ import (
 )
 
 func main() {
-
-	telegramBot := bot.InitTelegramBot()
-	go bot.StartLongPolling(telegramBot)
+	bot := bot.InstanceTelegramBot()
+	go bot.StartLongPolling()
 
 	server := server.InstanceServer()
 	err := server.ListenAndServe()
