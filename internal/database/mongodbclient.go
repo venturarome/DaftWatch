@@ -203,6 +203,33 @@ func (dbClient *mongoDbClient) CreateAlertForUser(alert model.Alert, user model.
 	return true
 }
 
+func (dbClient *mongoDbClient) ListAlertsForUser(user model.User) []model.Alert {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	//{"subscribers": {"$elemMatch": {"telegram_user_id": user.TelegramUserId}}}
+	filter := bson.D{
+		primitive.E{Key: "subscribers", Value: bson.D{
+			primitive.E{Key: "$elemMatch", Value: bson.D{
+				primitive.E{Key: "telegram_user_id", Value: user.TelegramUserId},
+			}},
+		}},
+	}
+
+	cur, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").Find(ctx, filter)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on ListAlertsForUser()::1: %v", err))
+	}
+
+	res := make([]model.Alert, 4)
+	err = cur.All(ctx, &res)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on ListAlertsForUser()::2: %v", err))
+	}
+
+	return res
+}
+
 func (dbClient *mongoDbClient) createUser(user model.User) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()

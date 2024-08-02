@@ -12,6 +12,7 @@ type DbClient interface {
 	//FindPropertiesByListingIds() []model.Property
 
 	CreateAlertForUser(alert model.Alert, user model.User) bool
+	ListAlertsForUser(user model.User) []model.Alert
 	DeleteAlerts() map[string]int64
 
 	DeleteUsers() map[string]int64
