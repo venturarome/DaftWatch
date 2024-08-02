@@ -3,11 +3,11 @@ package scraper
 import (
 	"fmt"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/gocolly/colly"
 	"github.com/venturarome/DaftWatch/internal/model"
+	"github.com/venturarome/DaftWatch/internal/utils"
 )
 
 const HTTP_SECURE string = "https://"
@@ -154,22 +154,22 @@ func extractPrice(textPrice string) (uint16, error) {
 	sr := strings.NewReplacer("€", "", ",", "", " ", "", "per", "", "week", "", "month", "")
 	textPrice = sr.Replace(textPrice)
 
-	return stringToUint16(textPrice)
+	return utils.StringToUint16(textPrice)
 }
 
 func extractNumSingleBedrooms(textNumSingleBedrooms string) (uint16, error) {
 	textNumSingleBedrooms = strings.Replace(textNumSingleBedrooms, "Single Bedroom: ", "", 1)
-	return stringToUint16(textNumSingleBedrooms)
+	return utils.StringToUint16(textNumSingleBedrooms)
 }
 
 func extractNumDoubleBedrooms(textNumDoubleBedrooms string) (uint16, error) {
 	textNumDoubleBedrooms = strings.Replace(textNumDoubleBedrooms, "Double Bedroom: ", "", 1)
-	return stringToUint16(textNumDoubleBedrooms)
+	return utils.StringToUint16(textNumDoubleBedrooms)
 }
 
 func extractNumBathrooms(textNumBathrooms string) (uint16, error) {
 	textNumBathrooms = strings.Replace(textNumBathrooms, "Bathroom: ", "", 1)
-	return stringToUint16(textNumBathrooms)
+	return utils.StringToUint16(textNumBathrooms)
 }
 
 func extractAvailableFrom(textAvailableFrom string) string {
@@ -183,13 +183,4 @@ func extractFurnished(textFurnished string) bool {
 
 func extractLeaseType(textLeaseType string) string {
 	return strings.Replace(textLeaseType, "Lease: ", "", 1)
-}
-
-func stringToUint16(textValue string) (uint16, error) {
-	uint64Value, err := strconv.ParseUint(textValue, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return uint16(uint64Value), nil
 }

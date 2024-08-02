@@ -1,5 +1,7 @@
 package database
 
+import "github.com/venturarome/DaftWatch/internal/model"
+
 type DbClient interface {
 	Health() map[string]string
 
@@ -9,6 +11,6 @@ type DbClient interface {
 	CountProperties() map[string]int64
 	//FindPropertiesByListingIds() []model.Property
 
-	CreateAlert() map[string]string
+	CreateAlertForUser(alert model.Alert, user model.User) bool
 	// TODO add here all methods to interact with databases. Will be implemented by all DB clientes (so far, only MongoDB)
 }

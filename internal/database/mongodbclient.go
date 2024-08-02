@@ -168,8 +168,8 @@ func (dbClient *mongoDbClient) FindPropertiesByListingIds() []model.Property {
 	return make([]model.Property, 0)
 }
 
-func (dbClient *mongoDbClient) CreateAlert() map[string]string {
-	return map[string]string{
-		"TODO": "TODO",
-	}
+func (dbClient *mongoDbClient) CreateAlertForUser(alert model.Alert, user model.User) bool {
+	// TODO we should use Upsert to only update with the new subscriber if the alert is already created.
+
+	return false
 }
