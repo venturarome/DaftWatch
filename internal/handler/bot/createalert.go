@@ -147,16 +147,17 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 
 		//  2. Create alert in DB.
 		user := model.User{
-			TelegramId:     userId,
+			TelegramUserId: userId,
 			TelegramChatId: chatId,
 		}
-		uMaxPrice, _ := utils.StringToUint16(maxPrice)
-		uMinBedrooms, _ := utils.StringToUint16(minBedrooms)
+		//(string)maxP
+		imaxPrice, _ := utils.StringToInt(maxPrice)
+		iMinBedrooms, _ := utils.StringToInt(minBedrooms)
 		alert := model.Alert{
 			SearchType:  searchType,
 			Location:    location,
-			MaxPrice:    uMaxPrice,
-			MinBedrooms: uMinBedrooms,
+			MaxPrice:    imaxPrice,
+			MinBedrooms: iMinBedrooms,
 		}
 
 		th.dbClient.CreateAlertForUser(alert, user)

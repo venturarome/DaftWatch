@@ -2,11 +2,15 @@ package utils
 
 import "strconv"
 
-func StringToUint16(textValue string) (uint16, error) {
-	uint64Value, err := strconv.ParseUint(textValue, 10, 64)
+func StringToInt(textValue string) (int, error) {
+	int64Value, err := strconv.ParseInt(textValue, 10, 64)
 	if err != nil {
 		return 0, err
 	}
 
-	return uint16(uint64Value), nil
+	return int(int64Value), nil
+}
+
+func BoolPtr(b bool) *bool {
+	return &b
 }

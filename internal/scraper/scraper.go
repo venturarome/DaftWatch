@@ -150,26 +150,26 @@ func Scrape(criteria Criteria) map[string]model.Property {
 }
 
 // Input format: "€X,XXX per month" / "€XXX per month" / "€XXX per week"
-func extractPrice(textPrice string) (uint16, error) {
+func extractPrice(textPrice string) (int, error) {
 	sr := strings.NewReplacer("€", "", ",", "", " ", "", "per", "", "week", "", "month", "")
 	textPrice = sr.Replace(textPrice)
 
-	return utils.StringToUint16(textPrice)
+	return utils.StringToInt(textPrice)
 }
 
-func extractNumSingleBedrooms(textNumSingleBedrooms string) (uint16, error) {
+func extractNumSingleBedrooms(textNumSingleBedrooms string) (int, error) {
 	textNumSingleBedrooms = strings.Replace(textNumSingleBedrooms, "Single Bedroom: ", "", 1)
-	return utils.StringToUint16(textNumSingleBedrooms)
+	return utils.StringToInt(textNumSingleBedrooms)
 }
 
-func extractNumDoubleBedrooms(textNumDoubleBedrooms string) (uint16, error) {
+func extractNumDoubleBedrooms(textNumDoubleBedrooms string) (int, error) {
 	textNumDoubleBedrooms = strings.Replace(textNumDoubleBedrooms, "Double Bedroom: ", "", 1)
-	return utils.StringToUint16(textNumDoubleBedrooms)
+	return utils.StringToInt(textNumDoubleBedrooms)
 }
 
-func extractNumBathrooms(textNumBathrooms string) (uint16, error) {
+func extractNumBathrooms(textNumBathrooms string) (int, error) {
 	textNumBathrooms = strings.Replace(textNumBathrooms, "Bathroom: ", "", 1)
-	return utils.StringToUint16(textNumBathrooms)
+	return utils.StringToInt(textNumBathrooms)
 }
 
 func extractAvailableFrom(textAvailableFrom string) string {
