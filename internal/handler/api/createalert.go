@@ -9,6 +9,7 @@ import (
 )
 
 func (h *ApiHandler) CreateAlertHandler(c *gin.Context) {
+	// For testing purposes
 	alert := model.Alert{
 		SearchType:  "buy",
 		Location:    "dublin",

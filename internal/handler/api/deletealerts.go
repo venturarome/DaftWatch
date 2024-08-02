@@ -7,6 +7,7 @@ import (
 )
 
 func (h *ApiHandler) DeleteAlertsHandler(c *gin.Context) {
+	// For testing purposes
 	// TODO pass Property instance as parameter
 	c.JSON(http.StatusOK, h.dbClient.DeleteAlerts())
 }

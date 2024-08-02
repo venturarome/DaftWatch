@@ -150,13 +150,12 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 			TelegramUserId: userId,
 			TelegramChatId: chatId,
 		}
-		//(string)maxP
-		imaxPrice, _ := utils.StringToInt(maxPrice)
+		iMaxPrice, _ := utils.StringToInt(maxPrice)
 		iMinBedrooms, _ := utils.StringToInt(minBedrooms)
 		alert := model.Alert{
 			SearchType:  searchType,
 			Location:    location,
-			MaxPrice:    imaxPrice,
+			MaxPrice:    iMaxPrice,
 			MinBedrooms: iMinBedrooms,
 		}
 
