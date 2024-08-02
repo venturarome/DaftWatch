@@ -40,6 +40,9 @@ func (h *ApiHandler) RegisterRoutes() {
 
 	h.engine.GET("/health", h.HealthHandler)
 
+	h.engine.GET("/create_alert/test", h.CreateAlertHandler)
+	h.engine.GET("/delete_alerts/test", h.DeleteAlertsHandler)
+
 	h.engine.GET("/create_property", h.CreatePropertyHandler)
 	h.engine.GET("/create_properties", h.CreatePropertiesHandler)
 	h.engine.GET("/count_properties", h.CountPropertiesHandler)

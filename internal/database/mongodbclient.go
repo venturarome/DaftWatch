@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/venturarome/DaftWatch/internal/model"
+	"github.com/venturarome/DaftWatch/internal/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -154,7 +155,9 @@ func (dbClient *mongoDbClient) CreateProperties() map[string]string {
 func (dbClient *mongoDbClient) DeleteProperties() map[string]int64 {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").DeleteMany(ctx, bson.D{})
+
+	filter := bson.D{}
+	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").DeleteMany(ctx, filter)
 	if err != nil {
 		log.Fatalf(fmt.Sprintf("Error on CountProperties() method: %v", err))
 	}
@@ -169,7 +172,70 @@ func (dbClient *mongoDbClient) FindPropertiesByListingIds() []model.Property {
 }
 
 func (dbClient *mongoDbClient) CreateAlertForUser(alert model.Alert, user model.User) bool {
-	// TODO we should use Upsert to only update with the new subscriber if the alert is already created.
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
-	return false
+	// 1. Create User if missing
+	dbClient.createUser(user)
+
+	// 2. Upsert Alert with relevant User data.
+	filter := bson.D{
+		primitive.E{Key: "search_type", Value: alert.SearchType},
+		primitive.E{Key: "location", Value: alert.Location},
+		primitive.E{Key: "max_price", Value: alert.MaxPrice},
+		primitive.E{Key: "min_bedrooms", Value: alert.MinBedrooms},
+	}
+
+	// $push (supports dupes) vs $addToSet (does not support dupes)
+	update := bson.D{
+		primitive.E{Key: "$addToSet", Value: bson.D{
+			primitive.E{Key: "subscribers", Value: user}},
+		},
+	}
+	opts := &options.UpdateOptions{
+		Upsert: utils.BoolPtr(true),
+	}
+	_, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on CreateAlertForUser()::2: %v", err))
+	}
+
+	return true
+}
+
+func (dbClient *mongoDbClient) createUser(user model.User) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		primitive.E{Key: "telegram_user_id", Value: user.TelegramUserId},
+		primitive.E{Key: "telegram_chat_id", Value: user.TelegramChatId},
+	}
+	update := bson.D{
+		primitive.E{Key: "$set", Value: filter},
+	}
+	opts := &options.UpdateOptions{
+		Upsert: utils.BoolPtr(true),
+	}
+
+	_, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("users").UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on CreateUser(): %v", err))
+	}
+	return true
+}
+
+func (dbClient *mongoDbClient) DeleteAlerts() map[string]int64 {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{}
+	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").DeleteMany(ctx, filter)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on DeleteAlerts() method: %v", err))
+	}
+
+	return map[string]int64{
+		"count": res.DeletedCount,
+	}
 }
