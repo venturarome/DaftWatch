@@ -239,3 +239,18 @@ func (dbClient *mongoDbClient) DeleteAlerts() map[string]int64 {
 		"count": res.DeletedCount,
 	}
 }
+
+func (dbClient *mongoDbClient) DeleteUsers() map[string]int64 {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{}
+	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("users").DeleteMany(ctx, filter)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on DeleteUsers() method: %v", err))
+	}
+
+	return map[string]int64{
+		"count": res.DeletedCount,
+	}
+}

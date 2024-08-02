@@ -13,5 +13,7 @@ type DbClient interface {
 
 	CreateAlertForUser(alert model.Alert, user model.User) bool
 	DeleteAlerts() map[string]int64
+
+	DeleteUsers() map[string]int64
 	// TODO add here all methods to interact with databases. Will be implemented by all DB clientes (so far, only MongoDB)
 }

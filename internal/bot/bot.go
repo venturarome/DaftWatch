@@ -108,6 +108,8 @@ func (bot *Bot) StartLongPolling() {
 			msg.Text = fmt.Sprintf("Hi %s :)", update.Message.From.FirstName)
 		case "status":
 			msg.Text = "I'm under construction."
+		case "godmode": // Superuser command!
+			msg, clearContext = bot.Handler.HandleGodMode(update)
 		// TODO: case with donation options.
 		// TODO: case to report bugs/suggestions.
 		// Meta-commands to handle cornercases.
