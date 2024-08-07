@@ -230,6 +230,45 @@ func (dbClient *mongoDbClient) ListAlertsForUser(user model.User) []model.Alert 
 	return res
 }
 
+func (dbClient *mongoDbClient) DeleteAlertForUser(alert model.Alert, user model.User) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	// 1. Remove User from Alert(s) matching specific criteria.
+	filter := bson.D{
+		primitive.E{Key: "search_type", Value: alert.SearchType},
+		primitive.E{Key: "location", Value: alert.Location},
+		primitive.E{Key: "max_price", Value: alert.MaxPrice},
+		primitive.E{Key: "min_bedrooms", Value: alert.MinBedrooms},
+	}
+
+	update := bson.D{
+		primitive.E{Key: "$pull", Value: bson.D{
+			primitive.E{Key: "subscribers", Value: bson.D{
+				primitive.E{Key: "telegram_user_id", Value: user.TelegramUserId},
+			}}},
+		},
+	}
+	_, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").UpdateOne(ctx, filter, update)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on DeleteAlertForUser()::1: %v", err))
+	}
+
+	// 2. Cleanup all alerts with no subscribers.
+	filter = bson.D{
+		primitive.E{Key: "subscribers", Value: bson.D{
+			primitive.E{Key: "$exists", Value: true},
+			primitive.E{Key: "$size", Value: 0},
+		}},
+	}
+	_, err = dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").DeleteOne(ctx, filter)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on DeleteAlertForUser()::2: %v", err))
+	}
+
+	return true
+}
+
 func (dbClient *mongoDbClient) createUser(user model.User) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()

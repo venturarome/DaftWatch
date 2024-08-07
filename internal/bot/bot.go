@@ -101,10 +101,12 @@ func (bot *Bot) StartLongPolling() {
 		switch update.Message.Command() {
 		case "help":
 			msg.Text = "I understand /createalert, /sayhi and /status."
-		case "myalerts":
-			msg, clearContext = bot.Handler.HandleMyAlerts(update)
 		case "createalert":
 			msg, clearContext = bot.Handler.HandleCreateAlert(update)
+		case "myalerts":
+			msg, clearContext = bot.Handler.HandleMyAlerts(update)
+		case "deletealert":
+			msg, clearContext = bot.Handler.HandleDeleteAlert(update)
 		case "sayhi":
 			msg.Text = fmt.Sprintf("Hi %s :)", update.Message.From.FirstName)
 		case "status":
