@@ -94,6 +94,7 @@ func (bot *Bot) StartLongPolling() {
 
 		// Create a new MessageConfig. We don't have text yet, so we leave it empty.
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		msg.ParseMode = "markdown"
 		var clearContext bool
 
 		// Extract the command from the Message.
