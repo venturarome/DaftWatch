@@ -24,18 +24,18 @@ func (th *TelegramHandler) HandleMyAlerts(update tgbotapi.Update) (msg tgbotapi.
 	chatId := update.Message.Chat.ID
 	msg = tgbotapi.NewMessage(chatId, "")
 
-	// TODO go to DB and check if User exists.
 	user := model.User{
 		TelegramUserId: userId,
 	}
 	alerts := th.dbClient.ListAlertsForUser(user)
-	fmt.Println(alerts)
 
-	tmpMsg := ""
-	for _, alert := range alerts {
-		tmpMsg += "* " + alert.Format() + "\n"
+	if len(alerts) == 0 {
+		msg.Text = "No alerts found. You can use /createalert to set new alerts."
+		return msg, true
 	}
-	msg.Text = tmpMsg
 
+	for _, alert := range alerts {
+		msg.Text += "• " + alert.Format() + "\n"
+	}
 	return msg, true
 }
