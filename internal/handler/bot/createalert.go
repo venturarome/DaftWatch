@@ -10,76 +10,13 @@ import (
 	"github.com/venturarome/DaftWatch/internal/utils"
 )
 
-// TODO create a util func to create the keyboard given the list of strings and an array with the buttons per row
-var searchTypeKeyboard = tgbotapi.NewReplyKeyboard(
-	tgbotapi.NewKeyboardButtonRow(
-		tgbotapi.NewKeyboardButton("Buy"),
-		tgbotapi.NewKeyboardButton("Rent"),
-	),
-)
-
-var locationKeyboard = tgbotapi.NewReplyKeyboard(
-	tgbotapi.NewKeyboardButtonRow(
-		tgbotapi.NewKeyboardButton("Dublin"),
-		tgbotapi.NewKeyboardButton("Cork"),
-	),
-	tgbotapi.NewKeyboardButtonRow(
-		tgbotapi.NewKeyboardButton("Limerick"),
-		tgbotapi.NewKeyboardButton("Galway"),
-	),
-)
-
-var maxPriceKeyboard = map[string]tgbotapi.ReplyKeyboardMarkup{
-	"Buy": tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("100000"),
-			tgbotapi.NewKeyboardButton("150000"),
-			tgbotapi.NewKeyboardButton("200000"),
-			tgbotapi.NewKeyboardButton("250000"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("300000"),
-			tgbotapi.NewKeyboardButton("350000"),
-			tgbotapi.NewKeyboardButton("400000"),
-			tgbotapi.NewKeyboardButton("450000"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("500000"),
-			tgbotapi.NewKeyboardButton("600000"),
-			tgbotapi.NewKeyboardButton("700000"),
-			tgbotapi.NewKeyboardButton("800000"),
-		),
-	),
-	"Rent": tgbotapi.NewReplyKeyboard(
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("750"),
-			tgbotapi.NewKeyboardButton("1000"),
-			tgbotapi.NewKeyboardButton("1250"),
-			tgbotapi.NewKeyboardButton("1500"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("1750"),
-			tgbotapi.NewKeyboardButton("2000"),
-			tgbotapi.NewKeyboardButton("2250"),
-			tgbotapi.NewKeyboardButton("2500"),
-		),
-		tgbotapi.NewKeyboardButtonRow(
-			tgbotapi.NewKeyboardButton("2750"),
-			tgbotapi.NewKeyboardButton("3000"),
-			tgbotapi.NewKeyboardButton("3250"),
-			tgbotapi.NewKeyboardButton("3500"),
-		),
-	),
+var searchTypeOptions = []string{"Buy", "Rent"}
+var locationOptions = []string{"Dublin", "Cork", "Limerick", "Galway"}
+var maxPriceOptions = map[string][]string{
+	"Buy":  {"100000", "150000", "200000", "250000", "300000", "350000", "400000", "450000", "500000", "600000", "700000", "800000"},
+	"Rent": {"750", "1000", "1250", "1500", "1750", "2000", "2250", "2500", "2750", "3000", "3250", "3500"},
 }
-
-var minBedroomsKeyboard = tgbotapi.NewReplyKeyboard(
-	tgbotapi.NewKeyboardButtonRow(
-		tgbotapi.NewKeyboardButton("1"),
-		tgbotapi.NewKeyboardButton("2"),
-		tgbotapi.NewKeyboardButton("3"),
-		tgbotapi.NewKeyboardButton("4"),
-	),
-)
+var minBedroomsOptions = []string{"1", "2", "3", "4"}
 
 func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbotapi.MessageConfig, clearContext bool) {
 	if update.Message == nil {
@@ -102,22 +39,22 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 	case 1:
 		// /createalert
 		msg.Text = "What are you looking for?"
-		msg.ReplyMarkup = searchTypeKeyboard
+		msg.ReplyMarkup = CreateKeyboard(searchTypeOptions, 2)
 	case 2:
 		// /createalert <searchType>
 		// TODO validate searchType
 		msg.Text = "In which city are you looking for?"
-		msg.ReplyMarkup = locationKeyboard
+		msg.ReplyMarkup = CreateKeyboard(locationOptions, 2)
 	case 3:
 		// /createalert <searchType> <location>
 		// TODO validate location
 		msg.Text = "How much are you willing to spend?"
-		msg.ReplyMarkup = maxPriceKeyboard[commandParts[1]]
+		msg.ReplyMarkup = CreateKeyboard(maxPriceOptions[commandParts[1]], 2)
 	case 4:
 		// /createalert <searchType> <location> <maxPrice>
 		// TODO validate maxPrice
 		msg.Text = "Which is the minimum number of bedrooms?"
-		msg.ReplyMarkup = minBedroomsKeyboard
+		msg.ReplyMarkup = CreateKeyboard(minBedroomsOptions, 2)
 	case 5:
 		// /createalert <searchType> <location> <maxPrice> <minBedrooms>
 		// TODO validate minBedrooms
