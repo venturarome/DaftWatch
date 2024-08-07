@@ -18,5 +18,7 @@ type Alert struct {
 }
 
 func (alert *Alert) Format() string {
-	return alert.SearchType + " in " + alert.Location + " (max price of " + strconv.Itoa(alert.MaxPrice) + " and min " + strconv.Itoa(alert.MinBedrooms) + " rooms)"
+	caser := cases.Title(language.English)
+
+	return caser.String(alert.SearchType) + " in " + caser.String(alert.Location) + " (max price of " + strconv.Itoa(alert.MaxPrice) + " and min " + strconv.Itoa(alert.MinBedrooms) + " rooms)"
 }
