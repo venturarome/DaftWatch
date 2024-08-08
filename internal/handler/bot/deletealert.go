@@ -57,7 +57,7 @@ func (th *TelegramHandler) HandleDeleteAlert(update tgbotapi.Update) (msg tgbota
 	case 2:
 		// /deletealert <alertNum>
 		// TODO validate alertNum
-		alertNum, _ := utils.StringToInt(commandParts[1])
+		alertNum := utils.StringToInt(commandParts[1])
 		user := model.User{
 			TelegramUserId: userId,
 			TelegramChatId: chatId,
