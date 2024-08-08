@@ -15,6 +15,7 @@ type Alert struct {
 	MaxPrice    int                `json:"max_price" bson:"max_price"`
 	MinBedrooms int                `json:"min_bedrooms" bson:"min_bedrooms"`
 	Subscribers []User             `json:"subscribers" bson:"subscribers"`
+	Properties  []Property         `json:"properties" bson:"properties"`
 }
 
 func (alert *Alert) Format() string {

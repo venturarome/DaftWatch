@@ -2,12 +2,14 @@ package telegram
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/venturarome/DaftWatch/internal/model"
 	"github.com/venturarome/DaftWatch/internal/scraper"
 	"github.com/venturarome/DaftWatch/internal/utils"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var searchTypeOptions = []string{"Buy", "Rent"}
@@ -31,6 +33,7 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 	fmt.Println("[DEBUG] createalert > received: ", messageText)
 
 	userId := update.Message.From.ID
+	userName := update.Message.From.UserName
 	chatId := update.Message.Chat.ID
 	msg = tgbotapi.NewMessage(chatId, "")
 
@@ -58,58 +61,73 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 	case 5:
 		// /createalert <searchType> <location> <maxPrice> <minBedrooms>
 		// TODO validate minBedrooms
-		// TODO:
-		//  0. Extract all pieces of information
-		searchType := strings.ToLower(commandParts[1])
-		location := strings.ToLower(commandParts[2])
-		maxPrice := strings.ToLower(commandParts[3])
-		minBedrooms := strings.ToLower(commandParts[4])
 
-		//  1. Scrape Daft with criteria (if possible, asynchronously)
-		criteria := scraper.Criteria{
-			SearchType: searchType,
-			Location:   location,
-			Filters: []scraper.Filter{
-				{
-					Key:   "maxPrice",
-					Value: maxPrice,
-				},
-				{
-					Key:   "minBedrooms",
-					Value: minBedrooms,
-				},
-				{
-					Key:   "firstPosted",
-					Value: "now-20m", // We force to only check super recent listings (last 20 mins), as only want properties from now on.
-				},
-			},
-		}
-		scraper.Scrape(criteria) // TODO probar a poner 'go' al inicio.
-
-		//  2. Create alert in DB.
-		user := model.User{
-			TelegramUserId: userId,
-			TelegramChatId: chatId,
-		}
-		iMaxPrice, _ := utils.StringToInt(maxPrice)
-		iMinBedrooms, _ := utils.StringToInt(minBedrooms)
-		alert := model.Alert{
-			SearchType:  searchType,
-			Location:    location,
-			MaxPrice:    iMaxPrice,
-			MinBedrooms: iMinBedrooms,
-		}
-
-		th.dbClient.CreateAlertForUser(alert, user)
-
-		//  3. Reply with elements matching criteria right now.
+		// 0. Prepare reply message
 		msg.Text = "Great! Alert created! I'll send you a message as soon as a new listing appears!"
 		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 		clearContext = true
+
+		// 1. Create entities
+		user := model.User{
+			TelegramUserId:   userId,
+			TelegramUserName: userName,
+			TelegramChatId:   chatId,
+		}
+		alert := model.Alert{
+			SearchType:  strings.ToLower(commandParts[1]),
+			Location:    strings.ToLower(commandParts[2]),
+			MaxPrice:    utils.StringToInt(commandParts[3]),
+			MinBedrooms: utils.StringToInt(commandParts[4]),
+		}
+		criteria := scraper.Criteria{
+			SearchType: alert.SearchType,
+			Location:   alert.Location,
+			Filters: []scraper.Filter{
+				{
+					Key:   "maxPrice",
+					Value: strconv.Itoa(alert.MaxPrice),
+				},
+				{
+					Key:   "minBedrooms",
+					Value: strconv.Itoa(alert.MinBedrooms),
+				},
+				{
+					Key:   "firstPosted",
+					Value: "now-20m", // We force to only check very recent listings (last 20 mins), as only want properties from now on.
+				},
+			},
+		}
+
+		// 2. DB and scraping actions
+		go th.doHandleCreateAlert(user, alert, criteria)
+
 	default:
 		msg.Text = "An error occurred."
 		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 		clearContext = true
 	}
 	return
+}
+
+func (th *TelegramHandler) doHandleCreateAlert(user model.User, alert model.Alert, criteria scraper.Criteria) {
+	// 1. Create User if missing in DB
+	th.dbClient.CreateUser(user)
+
+	// 2. Add User as subscriber to Alert in DB
+	res := th.dbClient.AddSubscriberToAlert(alert, user) // <-- this upserts the Alert
+	if res["UpsertedCount"] == 0 {
+		// Nothing else to do if the alert exists already
+		return
+	} else {
+		alert.Id = res["UpsertedID"].(primitive.ObjectID)
+	}
+
+	// 3. Scrape Properties matching the Criteria
+	scrapedProperties := scraper.Scrape(criteria)
+
+	// 4. Create Properties in DB
+	th.dbClient.CreateProperties(scrapedProperties)
+
+	// 5. Add properties' listing IDs to Alert in DB
+	th.dbClient.SetPropertiesToAlert(alert, scrapedProperties)
 }

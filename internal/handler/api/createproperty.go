@@ -8,5 +8,6 @@ import (
 
 func (h *ApiHandler) CreatePropertyHandler(c *gin.Context) {
 	// TODO pass Property instance as parameter
-	c.JSON(http.StatusOK, h.dbClient.CreateProperty())
+	//c.JSON(http.StatusOK, h.dbClient.CreateProperty())
+	c.JSON(http.StatusOK, map[string]interface{}{})
 }

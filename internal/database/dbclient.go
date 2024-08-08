@@ -5,17 +5,19 @@ import "github.com/venturarome/DaftWatch/internal/model"
 type DbClient interface {
 	Health() map[string]string
 
-	CreateProperty() map[string]string
-	CreateProperties() map[string]string
-	DeleteProperties() map[string]int64
-	CountProperties() map[string]int64
-	//FindPropertiesByListingIds() []model.Property
-
-	CreateAlertForUser(alert model.Alert, user model.User) bool
+	CreateUser(user model.User) map[string]interface{}
 	ListAlertsForUser(user model.User) []model.Alert
-	DeleteAlertForUser(alert model.Alert, user model.User) bool
+	DeleteUsers() map[string]int64
+
+	AddSubscriberToAlert(alert model.Alert, user model.User) map[string]interface{}
+	RemoveSubscriberFromAlert(alert model.Alert, user model.User) bool
+	SetPropertiesToAlert(alert model.Alert, properties []model.Property) map[string]interface{}
 	DeleteAlerts() map[string]int64
 
-	DeleteUsers() map[string]int64
+	CreateProperty(property model.Property) map[string]interface{}
+	CreateProperties(properties []model.Property) map[string]interface{}
+	CountProperties() map[string]int64
+	DeleteProperties() map[string]int64
+
 	// TODO add here all methods to interact with databases. Will be implemented by all DB clientes (so far, only MongoDB)
 }

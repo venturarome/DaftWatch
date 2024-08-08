@@ -63,7 +63,7 @@ func (th *TelegramHandler) HandleDeleteAlert(update tgbotapi.Update) (msg tgbota
 			TelegramChatId: chatId,
 		}
 
-		th.dbClient.DeleteAlertForUser(alerts[alertNum-1], user)
+		th.dbClient.RemoveSubscriberFromAlert(alerts[alertNum-1], user)
 
 		msg.Text = "Alert deleted successfully!"
 		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)

@@ -47,6 +47,8 @@ func InstanceMongoDb() DbClient {
 	}
 }
 
+// GO and BSON: https://www.mongodb.com/docs/drivers/go/current/fundamentals/bson/#data-types
+
 func (dbClient *mongoDbClient) Health() map[string]string {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -61,153 +63,37 @@ func (dbClient *mongoDbClient) Health() map[string]string {
 	}
 }
 
-func (dbClient *mongoDbClient) CountProperties() map[string]int64 {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	numDocs, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").CountDocuments(ctx, bson.D{{}})
-	if err != nil {
-		log.Fatalf(fmt.Sprintf("Error on CountProperties() method: %v", err))
-	}
-
-	return map[string]int64{
-		"count": numDocs,
-	}
-}
-
-// GO and BSON: https://www.mongodb.com/docs/drivers/go/current/fundamentals/bson/#data-types
-
-func (dbClient *mongoDbClient) CreateProperty() map[string]string {
-	property := model.Property{
-		Url:               "https://url-test.com",
-		Address:           "my keli",
-		Price:             1234,
-		Type:              "Studio",
-		NumDoubleBedrooms: 2,
-		NumBathrooms:      1,
-		Furnished:         true,
-		LeaseType:         "minimum 1 lifetime",
-		Description:       "this should be  very long description",
-		ListingId:         "123456",
-		// Omitted NumSingleBedrooms
-		// Omitted AvailableFrom
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").InsertOne(ctx, property)
-	if err != nil {
-		log.Fatalf(fmt.Sprintf("Error on CountProperties() method: %v", err))
-	}
-
-	return map[string]string{
-		"insertedId": res.InsertedID.(primitive.ObjectID).String(),
-	}
-}
-
-func (dbClient *mongoDbClient) CreateProperties() map[string]string {
-	property1 := model.Property{
-		Url:               "https://url-test-1.com",
-		Address:           "my keli1",
-		Price:             1234,
-		Type:              "Studio",
-		NumDoubleBedrooms: 2,
-		NumBathrooms:      1,
-		Furnished:         true,
-		LeaseType:         "minimum 1 lifetime",
-		Description:       "this should be  very long description",
-		ListingId:         "123456",
-	}
-	property2 := model.Property{
-		Url:               "https://url-test-2.com",
-		Address:           "my keli",
-		Price:             1234,
-		Type:              "Studio",
-		NumDoubleBedrooms: 2,
-		NumBathrooms:      1,
-		Furnished:         true,
-		LeaseType:         "minimum 1 lifetime",
-		Description:       "this should be  very long description",
-		ListingId:         "123457",
-	}
-
-	properties := []interface{}{
-		property1,
-		property2,
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").InsertMany(ctx, properties)
-	if res == nil {
-		log.Fatalf(fmt.Sprintf("Error on CreateProperties() method: %v", err))
-	}
-
-	// ret := make(map[string]string)
-	// for i, id := range res.InsertedIDs {
-	// 	// TODO if needed.
-	// }
-
-	return map[string]string{
-		"inserted": "ok",
-	}
-}
-
-func (dbClient *mongoDbClient) DeleteProperties() map[string]int64 {
+func (dbClient *mongoDbClient) CreateUser(user model.User) map[string]interface{} {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	filter := bson.D{}
-	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").DeleteMany(ctx, filter)
-	if err != nil {
-		log.Fatalf(fmt.Sprintf("Error on CountProperties() method: %v", err))
-	}
-
-	return map[string]int64{
-		"count": res.DeletedCount,
-	}
-}
-
-func (dbClient *mongoDbClient) FindPropertiesByListingIds() []model.Property {
-	return make([]model.Property, 0)
-}
-
-func (dbClient *mongoDbClient) CreateAlertForUser(alert model.Alert, user model.User) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	// 1. Create User if missing
-	dbClient.createUser(user)
-
-	// 2. Upsert Alert with relevant User data.
 	filter := bson.D{
-		primitive.E{Key: "search_type", Value: alert.SearchType},
-		primitive.E{Key: "location", Value: alert.Location},
-		primitive.E{Key: "max_price", Value: alert.MaxPrice},
-		primitive.E{Key: "min_bedrooms", Value: alert.MinBedrooms},
+		primitive.E{Key: "telegram_user_id", Value: user.TelegramUserId},
 	}
-
-	// $push (supports dupes) vs $addToSet (does not support dupes)
 	update := bson.D{
-		primitive.E{Key: "$addToSet", Value: bson.D{
-			primitive.E{Key: "subscribers", Value: user}},
-		},
+		primitive.E{Key: "$set", Value: filter},
 	}
 	opts := &options.UpdateOptions{
 		Upsert: utils.BoolPtr(true),
 	}
-	_, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").UpdateOne(ctx, filter, update, opts)
+
+	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("users").UpdateOne(ctx, filter, update, opts)
 	if err != nil {
-		log.Fatalf(fmt.Sprintf("Error on CreateAlertForUser()::2: %v", err))
+		log.Fatalf(fmt.Sprintf("Error on CreateUser(): %v", err))
 	}
 
-	return true
+	return map[string]interface{}{
+		"MatchedCount":  res.MatchedCount,
+		"ModifiedCount": res.ModifiedCount,
+		"UpsertedCount": res.UpsertedCount,
+		"UpsertedID":    res.UpsertedID,
+	}
 }
 
 func (dbClient *mongoDbClient) ListAlertsForUser(user model.User) []model.Alert {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	//{"subscribers": {"$elemMatch": {"telegram_user_id": user.TelegramUserId}}}
 	filter := bson.D{
 		primitive.E{Key: "subscribers", Value: bson.D{
 			primitive.E{Key: "$elemMatch", Value: bson.D{
@@ -230,7 +116,55 @@ func (dbClient *mongoDbClient) ListAlertsForUser(user model.User) []model.Alert 
 	return res
 }
 
-func (dbClient *mongoDbClient) DeleteAlertForUser(alert model.Alert, user model.User) bool {
+func (dbClient *mongoDbClient) DeleteUsers() map[string]int64 {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{}
+	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("users").DeleteMany(ctx, filter)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on DeleteUsers() method: %v", err))
+	}
+
+	return map[string]int64{
+		"count": res.DeletedCount,
+	}
+}
+
+func (dbClient *mongoDbClient) AddSubscriberToAlert(alert model.Alert, user model.User) map[string]interface{} {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		primitive.E{Key: "search_type", Value: alert.SearchType},
+		primitive.E{Key: "location", Value: alert.Location},
+		primitive.E{Key: "max_price", Value: alert.MaxPrice},
+		primitive.E{Key: "min_bedrooms", Value: alert.MinBedrooms},
+	}
+
+	// $push (supports dupes) vs $addToSet (does not support dupes)
+	update := bson.D{
+		primitive.E{Key: "$addToSet", Value: bson.D{
+			primitive.E{Key: "subscribers", Value: user.TelegramUserId}},
+		},
+	}
+	opts := &options.UpdateOptions{
+		Upsert: utils.BoolPtr(true),
+	}
+	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on AddSubscriberToAlert(): %v", err))
+	}
+
+	return map[string]interface{}{
+		"MatchedCount":  res.MatchedCount,
+		"ModifiedCount": res.ModifiedCount,
+		"UpsertedCount": res.UpsertedCount,
+		"UpsertedID":    res.UpsertedID,
+	}
+}
+
+func (dbClient *mongoDbClient) RemoveSubscriberFromAlert(alert model.Alert, user model.User) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -251,7 +185,7 @@ func (dbClient *mongoDbClient) DeleteAlertForUser(alert model.Alert, user model.
 	}
 	_, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").UpdateOne(ctx, filter, update)
 	if err != nil {
-		log.Fatalf(fmt.Sprintf("Error on DeleteAlertForUser()::1: %v", err))
+		log.Fatalf(fmt.Sprintf("Error on RemoveSubscriberFromAlert()::1: %v", err))
 	}
 
 	// 2. Cleanup all alerts with no subscribers.
@@ -263,32 +197,43 @@ func (dbClient *mongoDbClient) DeleteAlertForUser(alert model.Alert, user model.
 	}
 	_, err = dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").DeleteOne(ctx, filter)
 	if err != nil {
-		log.Fatalf(fmt.Sprintf("Error on DeleteAlertForUser()::2: %v", err))
+		log.Fatalf(fmt.Sprintf("Error on RemoveSubscriberFromAlert()::2: %v", err))
 	}
 
 	return true
 }
 
-func (dbClient *mongoDbClient) createUser(user model.User) bool {
+func (DbClient *mongoDbClient) SetPropertiesToAlert(alert model.Alert, properties []model.Property) map[string]interface{} {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	filter := bson.D{
-		primitive.E{Key: "telegram_user_id", Value: user.TelegramUserId},
-		primitive.E{Key: "telegram_chat_id", Value: user.TelegramChatId},
-	}
-	update := bson.D{
-		primitive.E{Key: "$set", Value: filter},
-	}
-	opts := &options.UpdateOptions{
-		Upsert: utils.BoolPtr(true),
+		primitive.E{Key: "_id", Value: alert.Id},
 	}
 
-	_, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("users").UpdateOne(ctx, filter, update, opts)
-	if err != nil {
-		log.Fatalf(fmt.Sprintf("Error on CreateUser(): %v", err))
+	propertyListingIds := utils.MapSlice(
+		properties,
+		func(p model.Property) string {
+			return p.ListingId
+		},
+	)
+	update := bson.D{
+		primitive.E{Key: "$set", Value: bson.D{
+			primitive.E{Key: "properties", Value: propertyListingIds},
+		}},
 	}
-	return true
+
+	res, err := DbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").UpdateOne(ctx, filter, update)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on SetPropertiesToAlert(): %v", err))
+	}
+
+	return map[string]interface{}{
+		"MatchedCount":  res.MatchedCount,
+		"ModifiedCount": res.ModifiedCount,
+		"UpsertedCount": res.UpsertedCount,
+		"UpsertedID":    res.UpsertedID,
+	}
 }
 
 func (dbClient *mongoDbClient) DeleteAlerts() map[string]int64 {
@@ -306,14 +251,91 @@ func (dbClient *mongoDbClient) DeleteAlerts() map[string]int64 {
 	}
 }
 
-func (dbClient *mongoDbClient) DeleteUsers() map[string]int64 {
+func (dbClient *mongoDbClient) CreateProperty(property model.Property) map[string]interface{} {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		primitive.E{Key: "listing_id", Value: property.ListingId},
+	}
+	update := bson.D{
+		primitive.E{Key: "$set", Value: bson.D{
+			primitive.E{Key: "url", Value: property.Url},
+			primitive.E{Key: "address", Value: property.Address},
+			primitive.E{Key: "price", Value: property.Price},
+			primitive.E{Key: "type", Value: property.Type},
+			primitive.E{Key: "num_double_bedrooms", Value: property.NumDoubleBedrooms},
+			primitive.E{Key: "num_single_bedrooms", Value: property.NumSingleBedrooms},
+			primitive.E{Key: "num_bathrooms", Value: property.NumBathrooms},
+			primitive.E{Key: "avaliable_from", Value: property.AvailableFrom},
+			primitive.E{Key: "furnished", Value: property.Furnished},
+			primitive.E{Key: "lease_type", Value: property.LeaseType},
+			primitive.E{Key: "description", Value: property.Description},
+			primitive.E{Key: "listing_id", Value: property.ListingId},
+		}},
+	}
+	opts := &options.UpdateOptions{
+		Upsert: utils.BoolPtr(true),
+	}
+
+	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on CreateProperty(): %v", err))
+	}
+
+	return map[string]interface{}{
+		"MatchedCount":  res.MatchedCount,
+		"ModifiedCount": res.ModifiedCount,
+		"UpsertedCount": res.UpsertedCount,
+		"UpsertedID":    res.UpsertedID,
+	}
+}
+
+func (dbClient *mongoDbClient) CreateProperties(properties []model.Property) map[string]interface{} {
+
+	var matchedCount, modifiedCount, upsertedCount int64 = 0, 0, 0
+	var upsertedIDs []primitive.ObjectID = make([]primitive.ObjectID, 0, len(properties))
+	for _, property := range properties {
+		res := dbClient.CreateProperty(property)
+		matchedCount += res["MatchedCount"].(int64)
+		modifiedCount += res["ModifiedCount"].(int64)
+		upsertedCount += res["UpsertedCount"].(int64)
+		if v, ok := res["UpsertedID"].(primitive.ObjectID); ok {
+			upsertedIDs = append(upsertedIDs, v)
+		}
+
+	}
+
+	return map[string]interface{}{
+		"MatchedCount":  matchedCount,
+		"ModifiedCount": modifiedCount,
+		"UpsertedCount": upsertedCount,
+		"UpsertedIDs":   upsertedIDs,
+	}
+}
+
+func (dbClient *mongoDbClient) CountProperties() map[string]int64 {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	numDocs, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").CountDocuments(ctx, bson.D{{}})
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on CountProperties() method: %v", err))
+	}
+
+	return map[string]int64{
+		"count": numDocs,
+	}
+}
+
+func (dbClient *mongoDbClient) DeleteProperties() map[string]int64 {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	filter := bson.D{}
-	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("users").DeleteMany(ctx, filter)
+	res, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("properties").DeleteMany(ctx, filter)
 	if err != nil {
-		log.Fatalf(fmt.Sprintf("Error on DeleteUsers() method: %v", err))
+		log.Fatalf(fmt.Sprintf("Error on DeleteProperties() method: %v", err))
 	}
 
 	return map[string]int64{
