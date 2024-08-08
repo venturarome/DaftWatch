@@ -13,11 +13,11 @@ import (
 const HTTP_SECURE string = "https://"
 const BASE_URL_DAFT string = "www.daft.ie"
 
-func Scrape(criteria Criteria) map[string]model.Property {
+func Scrape(criteria Criteria) []model.Property {
 	fmt.Println("Entering scraper::Scrape")
 
 	// Map to store scraped data
-	propertyIdUrlMap := make(map[string]model.Property)
+	var scrapedProperties []model.Property
 
 	// Main page collector
 	mainCollector := colly.NewCollector(
@@ -103,17 +103,17 @@ func Scrape(criteria Criteria) map[string]model.Property {
 
 		property.Url = e.Request.URL.String()
 		property.Address = e.ChildText("h1[data-testid='address']")
-		property.Price, _ = extractPrice(e.ChildText("div[data-testid='price'] h2"))
+		property.Price = extractPrice(e.ChildText("div[data-testid='price'] h2"))
 		property.Type = e.ChildText("p[data-testid='property-type']")
 		e.ForEach("div[data-testid='overview'] ul li", func(i int, e *colly.HTMLElement) {
 			infoKey := e.ChildText("span")
 			switch infoKey {
 			case "Single Bedroom":
-				property.NumSingleBedrooms, _ = extractNumSingleBedrooms(e.Text)
+				property.NumSingleBedrooms = extractNumSingleBedrooms(e.Text)
 			case "Double Bedroom":
-				property.NumDoubleBedrooms, _ = extractNumDoubleBedrooms(e.Text)
+				property.NumDoubleBedrooms = extractNumDoubleBedrooms(e.Text)
 			case "Bathroom":
-				property.NumBathrooms, _ = extractNumBathrooms(e.Text)
+				property.NumBathrooms = extractNumBathrooms(e.Text)
 			case "Available From":
 				property.AvailableFrom = extractAvailableFrom(e.Text)
 			case "Furnished":
@@ -126,7 +126,7 @@ func Scrape(criteria Criteria) map[string]model.Property {
 		property.ListingId = path.Base(property.Url)
 
 		// Store property
-		propertyIdUrlMap[property.ListingId] = property
+		scrapedProperties = append(scrapedProperties, property)
 	})
 	propertyCollector.OnScraped(func(r *colly.Response) {
 		fmt.Println("Entering scraper::Scrape[propertyCollector::OnScraped]")
@@ -146,28 +146,28 @@ func Scrape(criteria Criteria) map[string]model.Property {
 	// Entry point to start collecting/scraping
 	mainCollector.Visit(url)
 
-	return propertyIdUrlMap
+	return scrapedProperties
 }
 
 // Input format: "€X,XXX per month" / "€XXX per month" / "€XXX per week"
-func extractPrice(textPrice string) (int, error) {
+func extractPrice(textPrice string) int {
 	sr := strings.NewReplacer("€", "", ",", "", " ", "", "per", "", "week", "", "month", "")
 	textPrice = sr.Replace(textPrice)
 
 	return utils.StringToInt(textPrice)
 }
 
-func extractNumSingleBedrooms(textNumSingleBedrooms string) (int, error) {
+func extractNumSingleBedrooms(textNumSingleBedrooms string) int {
 	textNumSingleBedrooms = strings.Replace(textNumSingleBedrooms, "Single Bedroom: ", "", 1)
 	return utils.StringToInt(textNumSingleBedrooms)
 }
 
-func extractNumDoubleBedrooms(textNumDoubleBedrooms string) (int, error) {
+func extractNumDoubleBedrooms(textNumDoubleBedrooms string) int {
 	textNumDoubleBedrooms = strings.Replace(textNumDoubleBedrooms, "Double Bedroom: ", "", 1)
 	return utils.StringToInt(textNumDoubleBedrooms)
 }
 
-func extractNumBathrooms(textNumBathrooms string) (int, error) {
+func extractNumBathrooms(textNumBathrooms string) int {
 	textNumBathrooms = strings.Replace(textNumBathrooms, "Bathroom: ", "", 1)
 	return utils.StringToInt(textNumBathrooms)
 }
