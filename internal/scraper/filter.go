@@ -10,6 +10,7 @@ type Filter struct {
 var allowedFilters = map[string]string{
 	"maxPrice":    "9999",
 	"minBedrooms": "0",
+	"firstPosted": "now-30d",
 }
 
 var filtersMap = map[string]map[string]string{
@@ -17,10 +18,12 @@ var filtersMap = map[string]map[string]string{
 	"rent": {
 		"maxPrice":    "rentalPrice_to",
 		"minBedrooms": "numBeds_from",
+		"firstPosted": "firstPublishDate_from",
 	},
 	"buy": {
 		"maxPrice":    "salePrice_to",
 		"minBedrooms": "numBeds_from",
+		"firstPosted": "firstPublishDate_from",
 	},
 	// TODO fill it with all possible keys.
 }

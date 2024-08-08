@@ -78,6 +78,10 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 					Key:   "minBedrooms",
 					Value: minBedrooms,
 				},
+				{
+					Key:   "firstPosted",
+					Value: "now-20m", // We force to only check super recent listings (last 20 mins), as only want properties from now on.
+				},
 			},
 		}
 		scraper.Scrape(criteria) // TODO probar a poner 'go' al inicio.
