@@ -26,7 +26,7 @@ func (th *TelegramHandler) HandleFeedback(update tgbotapi.Update) (msg tgbotapi.
 	chatId := update.Message.Chat.ID
 	msg = tgbotapi.NewMessage(chatId, "")
 
-	commandParts := strings.SplitN(messageText, " ", 2)
+	commandParts := SplitCommandParts(messageText)
 	switch len(commandParts) {
 	case 1:
 		// /feedback
