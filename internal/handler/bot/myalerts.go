@@ -34,8 +34,11 @@ func (th *TelegramHandler) HandleMyAlerts(update tgbotapi.Update) (msg tgbotapi.
 		return msg, true
 	}
 
+	msg.Text = "These are your active alerts:\n\n"
 	for _, alert := range alerts {
 		msg.Text += " • " + alert.Format() + "\n"
 	}
+	msg.Text += "\nYou can add or delete alerts using /createalert o /deletealert commands."
+
 	return msg, true
 }
