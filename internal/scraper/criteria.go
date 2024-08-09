@@ -3,6 +3,9 @@ package scraper
 import (
 	"errors"
 	"fmt"
+	"strconv"
+
+	"github.com/venturarome/DaftWatch/internal/model"
 )
 
 type Criteria struct {
@@ -73,6 +76,19 @@ var locationsMap = map[string]string{
 	// "limerick_county": "limerick",
 	// "limerick_city":   "limerick-city",
 	// TODO fill all options
+}
+
+// TODO move to "utils"? Create a specific Writer?
+func CreateCriteriaFromAlert(alert model.Alert) Criteria {
+	return Criteria{
+		SearchType: alert.SearchType,
+		Location:   alert.Location,
+		Filters: []Filter{
+			{Key: "maxPrice", Value: strconv.Itoa(alert.MaxPrice)},
+			{Key: "minBedrooms", Value: strconv.Itoa(alert.MinBedrooms)},
+			{Key: "firstPosted", Value: "now-20m"},
+		},
+	}
 }
 
 func (criteria *Criteria) buildQuery(baseUrl string) (string, error) {
