@@ -11,6 +11,7 @@ type Property struct {
 	NumDoubleBedrooms int                `json:"num_double_bedrooms" bson:"num_double_bedrooms,omitempty"`
 	NumSingleBedrooms int                `json:"num_single_bedrooms" bson:"num_single_bedrooms,omitempty"`
 	NumBathrooms      int                `json:"num_bathrooms" bson:"num_bathrooms,omitempty"`
+	FloorArea         int                `json:"floor_area" bson:"floor_area,omitempty"`
 	AvailableFrom     string             `json:"available_from" bson:"available_from,omitempty"` // TODO consider using date package
 	Furnished         bool               `json:"furnished" bson:"furnished,omitempty"`
 	LeaseType         string             `json:"lease_type" bson:"lease_type,omitempty"` // TODO create LeaseType enum or the like

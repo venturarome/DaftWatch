@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"strings"
 
@@ -14,7 +15,9 @@ const HTTP_SECURE string = "https://"
 const BASE_URL_DAFT string = "www.daft.ie"
 
 func Scrape(criteria Criteria) []model.Property {
-	fmt.Println("Entering scraper::Scrape")
+	if os.Getenv("SCRAPER_MODE") == "debug" {
+		fmt.Println("Entering scraper::Scrape")
+	}
 
 	// Map to store scraped data
 	var scrapedProperties []model.Property
@@ -30,8 +33,10 @@ func Scrape(criteria Criteria) []model.Property {
 
 	// Define behaviour for mainCollector
 	mainCollector.OnRequest(func(r *colly.Request) {
-		fmt.Println("Entering scraper::Scrape[mainCollector::OnRequest]")
-		fmt.Printf("Visiting %s\n", r.URL)
+		if os.Getenv("SCRAPER_MODE") == "debug" {
+			fmt.Println("Entering scraper::Scrape[mainCollector::OnRequest]")
+			fmt.Printf("Visiting %s\n", r.URL)
+		}
 		r.Headers.Set("content-type", "application/json; charset=utf-8")
 		r.Headers.Set("Accept", "*/*")
 		r.Headers.Set("Accept-Language", "en-ES,en;q=0.9,es-ES;q=0.8,es;q=0.7,en-GB;q=0.6,en-US;q=0.5")
@@ -49,7 +54,9 @@ func Scrape(criteria Criteria) []model.Property {
 		r.Headers.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 	})
 	mainCollector.OnHTML("li[class^='SearchPagestyled__Result-sc-'] a", func(e *colly.HTMLElement) {
-		fmt.Println("Entering scraper::Scrape[mainCollector::OnHTML]")
+		if os.Getenv("SCRAPER_MODE") == "debug" {
+			fmt.Println("Entering scraper::Scrape[mainCollector::OnHTML]")
+		}
 		// This gets every URI to the first 20 properties matching the criteria.
 		absolutePropertyUrl := e.Request.AbsoluteURL(e.Attr("href"))
 		propertyCollector.Visit(absolutePropertyUrl)
@@ -58,17 +65,23 @@ func Scrape(criteria Criteria) []model.Property {
 		// We still need to navigate to "next page" and list every property.
 	})
 	mainCollector.OnScraped(func(r *colly.Response) {
-		fmt.Println("Entering scraper::Scrape[mainCollector::OnScraped]")
+		if os.Getenv("SCRAPER_MODE") == "debug" {
+			fmt.Println("Entering scraper::Scrape[mainCollector::OnScraped]")
+		}
 	})
 	mainCollector.OnError(func(r *colly.Response, err error) {
-		fmt.Println("Entering scraper::Scrape[mainCollector::OnError]")
-		fmt.Printf("Error: %s", err)
+		if os.Getenv("SCRAPER_MODE") == "debug" {
+			fmt.Println("Entering scraper::Scrape[mainCollector::OnError]")
+			fmt.Printf("Error: %s", err)
+		}
 	})
 
 	// Define behaviour for propertyCollector
 	propertyCollector.OnRequest(func(r *colly.Request) {
-		fmt.Println("Entering scraper::Scrape[propertyCollector::OnRequest]")
-		fmt.Printf("Visiting %s\n", r.URL)
+		if os.Getenv("SCRAPER_MODE") == "debug" {
+			fmt.Println("Entering scraper::Scrape[propertyCollector::OnRequest]")
+			fmt.Printf("Visiting %s\n", r.URL)
+		}
 		r.Headers.Set("content-type", "application/json; charset=utf-8")
 		r.Headers.Set("Accept", "*/*")
 		r.Headers.Set("Accept-Language", "en-ES,en;q=0.9,es-ES;q=0.8,es;q=0.7,en-GB;q=0.6,en-US;q=0.5")
@@ -86,7 +99,9 @@ func Scrape(criteria Criteria) []model.Property {
 		r.Headers.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 	})
 	propertyCollector.OnHTML("div[class^='styles__MainColumn-sc-']", func(e *colly.HTMLElement) {
-		fmt.Println("Entering scraper::Scrape[propertyCollector::OnHTML]")
+		if os.Getenv("SCRAPER_MODE") == "debug" {
+			fmt.Println("Entering scraper::Scrape[propertyCollector::OnHTML]")
+		}
 
 		// Some links go to "developments" containing several "properties".
 		// In that case, visit each property individually.
@@ -105,6 +120,12 @@ func Scrape(criteria Criteria) []model.Property {
 		property.Address = e.ChildText("h1[data-testid='address']")
 		property.Price = extractPrice(e.ChildText("div[data-testid='price'] h2"))
 		property.Type = e.ChildText("p[data-testid='property-type']")
+
+		// These keys appear sometimes:
+		property.NumDoubleBedrooms = extractBeds(e.ChildText("p[data-testid='beds']"))
+		property.NumBathrooms = extractBaths(e.ChildText("p[data-testid='baths']"))
+		property.FloorArea = extractFloorArea(e.ChildText("p[data-testid='floor-area']"))
+
 		e.ForEach("div[data-testid='overview'] ul li", func(i int, e *colly.HTMLElement) {
 			infoKey := e.ChildText("span")
 			switch infoKey {
@@ -129,11 +150,15 @@ func Scrape(criteria Criteria) []model.Property {
 		scrapedProperties = append(scrapedProperties, property)
 	})
 	propertyCollector.OnScraped(func(r *colly.Response) {
-		fmt.Println("Entering scraper::Scrape[propertyCollector::OnScraped]")
+		if os.Getenv("SCRAPER_MODE") == "debug" {
+			fmt.Println("Entering scraper::Scrape[propertyCollector::OnScraped]")
+		}
 	})
 	propertyCollector.OnError(func(r *colly.Response, err error) {
-		fmt.Println("Entering scraper::Scrape[propertyCollector::OnError]")
-		fmt.Printf("Error: %s", err)
+		if os.Getenv("SCRAPER_MODE") == "debug" {
+			fmt.Println("Entering scraper::Scrape[propertyCollector::OnError]")
+			fmt.Printf("Error: %s", err)
+		}
 	})
 
 	url, err := criteria.buildQuery(HTTP_SECURE + BASE_URL_DAFT)
@@ -141,7 +166,9 @@ func Scrape(criteria Criteria) []model.Property {
 		return nil
 	}
 
-	fmt.Println("Reconstructed URL from criteria: ", url)
+	if os.Getenv("SCRAPER_MODE") == "debug" {
+		fmt.Println("Reconstructed URL from criteria: ", url)
+	}
 
 	// Entry point to start collecting/scraping
 	mainCollector.Visit(url)
@@ -155,6 +182,27 @@ func extractPrice(textPrice string) int {
 	textPrice = sr.Replace(textPrice)
 
 	return utils.StringToInt(textPrice)
+}
+
+func extractBeds(textBeds string) int {
+	sr := strings.NewReplacer(" ", "", "Bed", "")
+	textBeds = sr.Replace(textBeds)
+
+	return utils.StringToInt(textBeds)
+}
+
+func extractBaths(textBaths string) int {
+	sr := strings.NewReplacer(" ", "", "Bath", "")
+	textBaths = sr.Replace(textBaths)
+
+	return utils.StringToInt(textBaths)
+}
+
+func extractFloorArea(textFloorArea string) int {
+	sr := strings.NewReplacer(" ", "", "m²", "")
+	textFloorArea = sr.Replace(textFloorArea)
+
+	return utils.StringToInt(textFloorArea)
 }
 
 func extractNumSingleBedrooms(textNumSingleBedrooms string) int {
