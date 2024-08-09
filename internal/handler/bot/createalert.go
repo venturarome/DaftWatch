@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -19,6 +20,8 @@ var maxPriceOptions = map[string][]string{
 	"Rent": {"750", "1000", "1250", "1500", "1750", "2000", "2250", "2500", "2750", "3000", "3250", "3500"},
 }
 var minBedroomsOptions = []string{"1", "2", "3", "4"}
+
+const maxAlertsPerUser int = 3
 
 func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbotapi.MessageConfig, clearContext bool) {
 	if update.Message == nil {
@@ -41,6 +44,18 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 	switch len(commandParts) {
 	case 1:
 		// /createalert
+
+		// Fair usage
+		user := model.User{TelegramUserId: userId}
+		if userId != int64(utils.StringToInt(os.Getenv("TELEGRAM_ID_GOD_USER"))) &&
+			len(th.dbClient.ListAlertsForUser(user)) >= maxAlertsPerUser {
+			msg.Text = fmt.Sprintf("To guarantee a fair use, a limit of %d simultaneous alerts per user is in place. "+
+				"However, if you wish to have it extended, consider donating by typing /donate to have it unlocked.", maxAlertsPerUser)
+			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+			clearContext = true
+			return
+		}
+
 		msg.Text = "What are you looking for?"
 		msg.ReplyMarkup = CreateKeyboard(searchTypeOptions, 2)
 	case 2:
