@@ -97,12 +97,17 @@ func (dbClient *mongoDbClient) ListAlertsForUser(user model.User) []model.Alert 
 	filter := bson.D{
 		primitive.E{Key: "subscribers", Value: bson.D{
 			primitive.E{Key: "$elemMatch", Value: bson.D{
-				primitive.E{Key: "telegram_user_id", Value: user.TelegramUserId},
+				primitive.E{Key: "$eq", Value: user.TelegramUserId},
 			}},
 		}},
 	}
-
-	cur, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").Find(ctx, filter)
+	opts := &options.FindOptions{
+		Projection: bson.D{
+			primitive.E{Key: "subscribers", Value: 0},
+			primitive.E{Key: "properties", Value: 0},
+		},
+	}
+	cur, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").Find(ctx, filter, opts)
 	if err != nil {
 		log.Fatalf(fmt.Sprintf("Error on ListAlertsForUser()::1: %v", err))
 	}
@@ -216,7 +221,7 @@ func (dbClient *mongoDbClient) RemoveSubscriberFromAlert(alert model.Alert, user
 	update := bson.D{
 		primitive.E{Key: "$pull", Value: bson.D{
 			primitive.E{Key: "subscribers", Value: bson.D{
-				primitive.E{Key: "telegram_user_id", Value: user.TelegramUserId},
+				primitive.E{Key: "$eq", Value: user.TelegramUserId},
 			}}},
 		},
 	}
