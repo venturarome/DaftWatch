@@ -33,3 +33,25 @@ func MapSlice[T any, U any](slice []T, fn func(T) U) []U {
 	}
 	return result
 }
+
+// DiffSlice compares sliceFrom against sliceCompare using a callback function fn (returns true if found)
+// and returns a slice containing all the T elements present in sliceFrom and missing in sliceCompare.
+// O(n^2)
+func DiffSlice[T any, U any](sliceFrom []T, sliceCompare []U, fn func(T, U) bool) []T {
+	var diffSlice []T
+
+	for _, elemFrom := range sliceFrom {
+		found := false
+		for _, elemCompare := range sliceCompare {
+			if fn(elemFrom, elemCompare) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diffSlice = append(diffSlice, elemFrom)
+		}
+	}
+
+	return diffSlice
+}
