@@ -35,7 +35,7 @@ func (th *TelegramHandler) HandleMyAlerts(update tgbotapi.Update) (msg tgbotapi.
 	}
 
 	for _, alert := range alerts {
-		msg.Text += "• " + alert.Format() + "\n"
+		msg.Text += " • " + alert.Format() + "\n"
 	}
 	return msg, true
 }
