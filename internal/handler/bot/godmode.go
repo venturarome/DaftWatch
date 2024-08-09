@@ -59,10 +59,20 @@ func (th *TelegramHandler) HandleGodMode(update tgbotapi.Update) (msg tgbotapi.M
 			msg.Text = "Done!"
 			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 			clearContext = true
+
+		case "test":
+			// START TEST
+			msg.Text = "Blueprint for tests"
+			// END TEST
+
+			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+			clearContext = true
+
 		case "cancel":
 			msg.Text = "I'll be here at anytime, My Lord."
 			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 			clearContext = true
+
 		default:
 			msg.Text = "I don't understand your command, My Lord."
 			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)

@@ -99,6 +99,10 @@ func (bot *Bot) StartLongPolling() {
 
 		// Extract the command from the Message.
 		switch update.Message.Command() {
+		case "donate":
+			msg, clearContext = bot.Handler.HandleDonate(update)
+		case "feedback", "contact":
+			msg, clearContext = bot.Handler.HandleFeedback(update)
 		case "help":
 			msg.Text = "I understand /createalert, /sayhi and /status."
 		case "createalert":
