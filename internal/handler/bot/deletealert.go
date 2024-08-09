@@ -44,7 +44,7 @@ func (th *TelegramHandler) HandleDeleteAlert(update tgbotapi.Update) (msg tgbota
 		return msg, true
 	}
 
-	commandParts := strings.Split(messageText, " ")
+	commandParts := SplitCommandParts(messageText)
 	switch len(commandParts) {
 	case 1:
 		// /deletealert

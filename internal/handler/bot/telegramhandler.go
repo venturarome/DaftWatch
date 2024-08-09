@@ -3,6 +3,7 @@ package telegram
 import (
 	"log"
 	"math"
+	"strings"
 
 	"github.com/venturarome/DaftWatch/internal/database"
 
@@ -17,6 +18,16 @@ func InstanceHandler() *TelegramHandler {
 	return &TelegramHandler{
 		dbClient: database.InstanceMongoDb(),
 	}
+}
+
+const CommandPartsSeparator string = " <|*|> "
+
+func JoinCommandParts(commandParts ...string) string {
+	return strings.Join(commandParts, CommandPartsSeparator)
+}
+
+func SplitCommandParts(fullCommand string) []string {
+	return strings.Split(fullCommand, CommandPartsSeparator)
 }
 
 func CreateKeyboard(choices []string, elemsPerRow int) tgbotapi.ReplyKeyboardMarkup {

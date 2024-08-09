@@ -40,7 +40,7 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 	chatId := update.Message.Chat.ID
 	msg = tgbotapi.NewMessage(chatId, "")
 
-	commandParts := strings.Split(messageText, " ")
+	commandParts := SplitCommandParts(messageText)
 	switch len(commandParts) {
 	case 1:
 		// /createalert

@@ -74,7 +74,7 @@ func (bot *Bot) StartLongPolling() {
 				update.Message.Text = "/outdatedcommand"
 			} else {
 				// There was a valid context. Update and use it.
-				updatedCommand := storedCommand + " " + currentText
+				updatedCommand := bh.JoinCommandParts(storedCommand, currentText)
 				bot.userContext[userId] = updatedCommand
 				bot.userTimestampContext[userId] = currentTimestamp
 				update.Message.Text = updatedCommand
@@ -83,7 +83,7 @@ func (bot *Bot) StartLongPolling() {
 			me := tgbotapi.MessageEntity{
 				Type:   "bot_command",
 				Offset: 0,
-				Length: len(strings.Split(update.Message.Text, " ")[0]), // Extract "/command" from "/command param1 param2 ..."
+				Length: len(bh.SplitCommandParts(update.Message.Text)[0]), // Extract "/command" from "/command param1 param2 ..."
 			}
 			update.Message.Entities = append(update.Message.Entities, me)
 		} else {
