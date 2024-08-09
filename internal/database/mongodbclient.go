@@ -107,13 +107,13 @@ func (dbClient *mongoDbClient) ListAlertsForUser(user model.User) []model.Alert 
 		log.Fatalf(fmt.Sprintf("Error on ListAlertsForUser()::1: %v", err))
 	}
 
-	res := make([]model.Alert, 4)
-	err = cur.All(ctx, &res)
+	alerts := []model.Alert{}
+	err = cur.All(ctx, &alerts)
 	if err != nil {
 		log.Fatalf(fmt.Sprintf("Error on ListAlertsForUser()::2: %v", err))
 	}
 
-	return res
+	return alerts
 }
 
 func (dbClient *mongoDbClient) DeleteUsers() map[string]int64 {
@@ -159,7 +159,7 @@ func (dbClient *mongoDbClient) ListAlerts() []model.Alert {
 		log.Fatalf(fmt.Sprintf("Error on ListAlerts()::1: %v", err))
 	}
 
-	alerts := []model.Alert{} // TODO check if it is needed to initialize it. If not, remove initialization from ListAlertsForUser
+	alerts := []model.Alert{}
 	err = cur.All(ctx, &alerts)
 	if err != nil {
 		log.Fatalf(fmt.Sprintf("Error on ListAlerts()::2: %v", err))

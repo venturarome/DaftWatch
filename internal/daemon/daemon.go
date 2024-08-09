@@ -30,7 +30,7 @@ func InstanceDaemon() *Daemon {
 	return &Daemon{
 		dbClient:       database.InstanceMongoDb(),
 		botApi:         tgBotApi,
-		cycleFrequency: time.Minute * 15,
+		cycleFrequency: time.Minute * 5,
 	}
 }
 
@@ -51,7 +51,6 @@ func (daemon *Daemon) Run() {
 		for _, alert := range alerts {
 			// 1. Scrape recent properties
 			criteria := scraper.CreateCriteriaFromAlert(alert)
-
 			scrapedProperties := scraper.Scrape(criteria)
 
 			// 2. Compare scraped properties with stored properties
@@ -63,32 +62,35 @@ func (daemon *Daemon) Run() {
 					return p1.ListingId == p2.ListingId
 				},
 			)
+			if len(newProperties) == 0 {
+				continue
+			}
 
 			// 3. Store new properties
 			daemon.dbClient.CreateProperties(newProperties)
 
-			// 4. Notify alert subscribers
-			// 4.1. Prepare text
-			msgText := fmt.Sprintf("New listings matched your alert *%s*!\n", alert.Format())
+			// 4. Update alert properties
+			daemon.dbClient.SetPropertiesToAlert(alert, scrapedProperties)
+
+			// 5. Notify alert subscribers
+			// 5.1. Prepare text
+			msgText := fmt.Sprintf("New listings matched your alert to <b>%s</b>\n", alert.Format())
 			for _, property := range newProperties {
 				msgText += fmt.Sprintf(
-					"\n__%s__\n • Type: %s\n • Price: %d€\n • Bedrooms: %d\n • See in [%s](Daft)\n",
-					property.Type,
+					"\n <u>%s</u> \n • Type: %s\n • Price: %d€\n • Bedrooms: %d\n • See in: %s\n",
 					property.Address,
+					property.Type,
 					property.Price,
 					property.NumSingleBedrooms+property.NumDoubleBedrooms,
 					property.Url,
 				)
 			}
-			// 4.2. Send Message
+			// 5.2. Send Message
 			for _, user := range alert.Subscribers {
 				msg := tgbotapi.NewMessage(user.TelegramChatId, msgText)
-				msg.ParseMode = "markdown" // TODO check if its neccessary
+				msg.ParseMode = "html"
 				daemon.botApi.Send(msg)
 			}
-
-			// 5. Update alert properties
-			daemon.dbClient.SetPropertiesToAlert(alert, newProperties)
 		}
 
 		if os.Getenv("DAEMON_MODE") == "debug" {
