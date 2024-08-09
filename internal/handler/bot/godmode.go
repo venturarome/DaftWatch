@@ -40,7 +40,7 @@ func (th *TelegramHandler) HandleGodMode(update tgbotapi.Update) (msg tgbotapi.M
 	}
 	msg = tgbotapi.NewMessage(chatId, "")
 
-	commandParts := strings.Split(messageText, " ")
+	commandParts := SplitCommandParts(messageText)
 	switch len(commandParts) {
 	case 1:
 		// /godmode
