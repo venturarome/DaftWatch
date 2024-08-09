@@ -71,7 +71,7 @@ func (dbClient *mongoDbClient) CreateUser(user model.User) map[string]interface{
 		primitive.E{Key: "telegram_user_id", Value: user.TelegramUserId},
 	}
 	update := bson.D{
-		primitive.E{Key: "$set", Value: filter},
+		primitive.E{Key: "$set", Value: user},
 	}
 	opts := &options.UpdateOptions{
 		Upsert: utils.BoolPtr(true),
@@ -129,6 +129,43 @@ func (dbClient *mongoDbClient) DeleteUsers() map[string]int64 {
 	return map[string]int64{
 		"count": res.DeletedCount,
 	}
+}
+
+func (dbClient *mongoDbClient) ListAlerts() []model.Alert {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	// https://www.mongodb.com/docs/upcoming/reference/operator/aggregation/lookup/#use--lookup-with-an-array
+	pipeline := bson.A{
+		bson.D{
+			primitive.E{Key: "$lookup", Value: bson.D{
+				primitive.E{Key: "from", Value: "properties"},
+				primitive.E{Key: "localField", Value: "properties"},
+				primitive.E{Key: "foreignField", Value: "listing_id"},
+				primitive.E{Key: "as", Value: "properties"},
+			}},
+		},
+		bson.D{
+			primitive.E{Key: "$lookup", Value: bson.D{
+				primitive.E{Key: "from", Value: "users"},
+				primitive.E{Key: "localField", Value: "subscribers"},
+				primitive.E{Key: "foreignField", Value: "telegram_user_id"},
+				primitive.E{Key: "as", Value: "subscribers"},
+			}},
+		},
+	}
+	cur, err := dbClient.db.Database(os.Getenv("MONGO_DB_DATABASE")).Collection("alerts").Aggregate(ctx, pipeline)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on ListAlerts()::1: %v", err))
+	}
+
+	alerts := []model.Alert{} // TODO check if it is needed to initialize it. If not, remove initialization from ListAlertsForUser
+	err = cur.All(ctx, &alerts)
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("Error on ListAlerts()::2: %v", err))
+	}
+
+	return alerts
 }
 
 func (dbClient *mongoDbClient) AddSubscriberToAlert(alert model.Alert, user model.User) map[string]interface{} {
@@ -260,20 +297,7 @@ func (dbClient *mongoDbClient) CreateProperty(property model.Property) map[strin
 		primitive.E{Key: "listing_id", Value: property.ListingId},
 	}
 	update := bson.D{
-		primitive.E{Key: "$set", Value: bson.D{
-			primitive.E{Key: "url", Value: property.Url},
-			primitive.E{Key: "address", Value: property.Address},
-			primitive.E{Key: "price", Value: property.Price},
-			primitive.E{Key: "type", Value: property.Type},
-			primitive.E{Key: "num_double_bedrooms", Value: property.NumDoubleBedrooms},
-			primitive.E{Key: "num_single_bedrooms", Value: property.NumSingleBedrooms},
-			primitive.E{Key: "num_bathrooms", Value: property.NumBathrooms},
-			primitive.E{Key: "avaliable_from", Value: property.AvailableFrom},
-			primitive.E{Key: "furnished", Value: property.Furnished},
-			primitive.E{Key: "lease_type", Value: property.LeaseType},
-			primitive.E{Key: "description", Value: property.Description},
-			primitive.E{Key: "listing_id", Value: property.ListingId},
-		}},
+		primitive.E{Key: "$set", Value: property},
 	}
 	opts := &options.UpdateOptions{
 		Upsert: utils.BoolPtr(true),

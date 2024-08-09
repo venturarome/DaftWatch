@@ -9,6 +9,7 @@ type DbClient interface {
 	ListAlertsForUser(user model.User) []model.Alert
 	DeleteUsers() map[string]int64
 
+	ListAlerts() []model.Alert
 	AddSubscriberToAlert(alert model.Alert, user model.User) map[string]interface{}
 	RemoveSubscriberFromAlert(alert model.Alert, user model.User) bool
 	SetPropertiesToAlert(alert model.Alert, properties []model.Property) map[string]interface{}
