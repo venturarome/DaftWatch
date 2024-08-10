@@ -1,50 +1,15 @@
 # DaftWatch
 
-### Summary
-Create alerts in daft.ie matching a specific search criteria and receive live updates when a new property ad is added or deleted.
+## Summary
+DaftWatch is a tool designed to create alerts on daft.ie based on specific search criteria. It provides live updates when new property ads are added, helping users stay informed about the latest property listings.
 
-## Info about Go structure
-* https://github.com/golang-standards/project-layout
-* https://www.youtube.com/watch?v=1ZbQS6pOlSQ
+## Features
+* __Custom Alerts__: Set up alerts for specific property search criteria.
+* __Live Updates__: Receive real-time notifications when new properties are listed or removed.
+* __User-Friendly Interface__: Easy to set up and manage alerts through a Telegram bot.
 
-## MakeFile
+## License
+This project is licensed under the MIT License.
 
-run all make commands with clean tests
-```bash
-make all build
-```
-
-build the application
-```bash
-make build
-```
-
-run the application
-```bash
-make run
-```
-
-Create DB container
-```bash
-make docker-run
-```
-
-Shutdown DB container
-```bash
-make docker-down
-```
-
-live reload the application
-```bash
-make watch
-```
-
-run the test suite
-```bash
-make test
-```
-
-clean up binary from the last build
-```bash
-make clean
-```
+## Contact
+For any questions or suggestions, please open an issue or contact the repository owner.
