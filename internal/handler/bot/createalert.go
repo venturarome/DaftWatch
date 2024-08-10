@@ -3,7 +3,6 @@ package telegram
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -13,8 +12,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var searchTypeOptions = []string{"Buy", "Rent"}
-var locationOptions = []string{"Dublin", "Cork", "Limerick", "Galway"}
+var searchTypeOptions = utils.MapKeysToSlice(scraper.SearchTypesMap) //[]string{"Buy", "Rent"}
+var locationOptions = utils.MapKeysToSlice(scraper.LocationsMap)     //[]string{"Belfast", "Cork", "Dublin 1", "Limerick", "Galway"}
 var maxPriceOptions = map[string][]string{
 	"Buy":  {"100000", "150000", "200000", "250000", "300000", "350000", "400000", "450000", "500000", "600000", "700000", "800000"},
 	"Rent": {"750", "1000", "1250", "1500", "1750", "2000", "2250", "2500", "2750", "3000", "3250", "3500"},
@@ -57,25 +56,21 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 		}
 
 		msg.Text = "What are you looking for?"
-		msg.ReplyMarkup = CreateKeyboard(searchTypeOptions, 2)
+		msg.ReplyMarkup = CreateKeyboard(searchTypeOptions, 2, true)
 	case 2:
 		// /createalert <searchType>
-		// TODO validate searchType
-		msg.Text = "In which city are you looking for?"
-		msg.ReplyMarkup = CreateKeyboard(locationOptions, 2)
+		msg.Text = "Where are you looking for?"
+		msg.ReplyMarkup = CreateKeyboard(locationOptions, 2, true)
 	case 3:
 		// /createalert <searchType> <location>
-		// TODO validate location
 		msg.Text = "How much are you willing to spend?"
-		msg.ReplyMarkup = CreateKeyboard(maxPriceOptions[commandParts[1]], 2)
+		msg.ReplyMarkup = CreateKeyboard(maxPriceOptions[commandParts[1]], 2, true)
 	case 4:
 		// /createalert <searchType> <location> <maxPrice>
-		// TODO validate maxPrice
 		msg.Text = "Which is the minimum number of bedrooms?"
-		msg.ReplyMarkup = CreateKeyboard(minBedroomsOptions, 2)
+		msg.ReplyMarkup = CreateKeyboard(minBedroomsOptions, 2, true)
 	case 5:
 		// /createalert <searchType> <location> <maxPrice> <minBedrooms>
-		// TODO validate minBedrooms
 
 		// 0. Prepare reply message
 		msg.Text = "Great! Alert created! I'll send you a message as soon as a new listing appears!"
@@ -89,29 +84,12 @@ func (th *TelegramHandler) HandleCreateAlert(update tgbotapi.Update) (msg tgbota
 			TelegramChatId:   chatId,
 		}
 		alert := model.Alert{
-			SearchType:  strings.ToLower(commandParts[1]),
-			Location:    strings.ToLower(commandParts[2]),
+			SearchType:  commandParts[1],
+			Location:    commandParts[2],
 			MaxPrice:    utils.StringToInt(commandParts[3]),
 			MinBedrooms: utils.StringToInt(commandParts[4]),
 		}
-		criteria := scraper.Criteria{
-			SearchType: alert.SearchType,
-			Location:   alert.Location,
-			Filters: []scraper.Filter{
-				{
-					Key:   "maxPrice",
-					Value: strconv.Itoa(alert.MaxPrice),
-				},
-				{
-					Key:   "minBedrooms",
-					Value: strconv.Itoa(alert.MinBedrooms),
-				},
-				{
-					Key:   "firstPosted",
-					Value: "now-20m", // We force to only check very recent listings (last 20 mins), as only want properties from now on.
-				},
-			},
-		}
+		criteria := scraper.CreateCriteriaFromAlert(alert)
 
 		// 2. DB and scraping actions
 		go th.doHandleCreateAlert(user, alert, criteria)

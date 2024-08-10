@@ -3,6 +3,7 @@ package telegram
 import (
 	"log"
 	"math"
+	"sort"
 	"strings"
 
 	"github.com/venturarome/DaftWatch/internal/database"
@@ -30,10 +31,14 @@ func SplitCommandParts(fullCommand string) []string {
 	return strings.Split(fullCommand, CommandPartsSeparator)
 }
 
-func CreateKeyboard(choices []string, elemsPerRow int) tgbotapi.ReplyKeyboardMarkup {
+func CreateKeyboard(choices []string, elemsPerRow int, sorted bool) tgbotapi.ReplyKeyboardMarkup {
 
 	if elemsPerRow < 1 {
 		log.Panic("elemsPerRow should be a positive integer")
+	}
+
+	if sorted {
+		sort.Strings(choices)
 	}
 
 	numChoices := len(choices)

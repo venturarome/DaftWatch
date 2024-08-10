@@ -53,7 +53,7 @@ func (th *TelegramHandler) HandleDeleteAlert(update tgbotapi.Update) (msg tgbota
 			msg.Text += strconv.Itoa(i+1) + ") " + alert.Format() + "\n"
 		}
 		msg.Text += "Which one do you want to delete?"
-		msg.ReplyMarkup = CreateKeyboard(alertToDeleteOptions(len(alerts)), 4)
+		msg.ReplyMarkup = CreateKeyboard(alertToDeleteOptions(len(alerts)), 4, false)
 	case 2:
 		// /deletealert <alertNum>
 		// TODO validate alertNum

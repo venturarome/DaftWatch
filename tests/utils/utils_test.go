@@ -70,12 +70,28 @@ func TestDiffSliceWithEmptyCompareSlice(t *testing.T) {
 	)
 
 	if len(diffSlice) != 3 {
-		t.Errorf("diffSlice should have length %d but has length %d", 1, len(diffSlice))
+		t.Errorf("diffSlice should have length %d but has length %d", 3, len(diffSlice))
 	}
 	for i := range []int{0, 1, 2} {
 		if diffSlice[i].ListingId != fromSlice[i].ListingId {
 			t.Errorf("diffSlice[%d].ListingId should have value %s but has length %s", i, fromSlice[i].ListingId, diffSlice[i].ListingId)
 		}
 	}
+}
 
+func TestMapKeysToSlice(t *testing.T) {
+	myMap := map[string]string{
+		"Hi":     "Hola",
+		"Bye":    "Adiós",
+		"Sorry":  "Perdón",
+		"Thanks": "Gracias",
+	}
+	mySlice := utils.MapKeysToSlice(myMap)
+
+	if len(mySlice) != 4 {
+		t.Errorf("mySlice should have length %d but has length %d", 4, len(mySlice))
+	}
+	if mySlice[0] != "Hi" || mySlice[1] != "Bye" || mySlice[2] != "Sorry" || mySlice[3] != "Thanks" {
+		t.Errorf("mySlice values do not correspond with expected values")
+	}
 }

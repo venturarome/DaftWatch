@@ -15,15 +15,15 @@ type Criteria struct {
 	Filters []Filter
 }
 
-var searchTypesMap = map[string]string{
+var SearchTypesMap = map[string]string{
 	// DaftWatch: Daft
-	"buy": "property-for-sale",
+	"Buy": "property-for-sale",
 	// "buy_commercial": "commercial-properties-for-sale",
 	// "buy_overseas":   "overseas-properties-for-sale",
 	// "buy_parking":    "parking-spaces-for-sale",
 	// "buy_new":        "new-homes-for-sale",
 
-	"rent": "property-for-rent",
+	"Rent": "property-for-rent",
 	// "rent_commercial": "commercial-properties-for-rent",
 	// "rent_overseas":   "overseas-properties-for-rent",
 	// "rent_parking":    "parking-spaces-for-rent",
@@ -36,46 +36,40 @@ var searchTypesMap = map[string]string{
 	// TODO fill all options
 }
 
-var locationsMap = map[string]string{
+var LocationsMap = map[string]string{
 	// DaftWatch: Daft
 
-	// Simplified version
-	"cork":     "cork-city",
-	"dublin":   "dublin-city",
-	"galway":   "galway-city",
-	"limerick": "limerick-city",
-
-	// Full version
-	// "cork_county":     "cork",
-	// "cork_city":       "cork-city",
-	// "dublin_county":   "dublin",
-	// "dublin_city":     "dublin-city",
-	// "dublin_1":        "dublin-1-dublin",
-	// "dublin_2":        "dublin-2-dublin",
-	// "dublin_3":        "dublin-3-dublin",
-	// "dublin_4":        "dublin-4-dublin",
-	// "dublin_5":        "dublin-5-dublin",
-	// "dublin_6":        "dublin-6-dublin",
-	// "dublin_7":        "dublin-7-dublin",
-	// "dublin_8":        "dublin-8-dublin",
-	// "dublin_9":        "dublin-9-dublin",
-	// "dublin_10":       "dublin-10-dublin",
-	// "dublin_11":       "dublin-11-dublin",
-	// "dublin_12":       "dublin-12-dublin",
-	// "dublin_13":       "dublin-13-dublin",
-	// "dublin_14":       "dublin-14-dublin",
-	// "dublin_15":       "dublin-15-dublin",
-	// "dublin_16":       "dublin-16-dublin",
-	// "dublin_17":       "dublin-17-dublin",
-	// "dublin_18":       "dublin-18-dublin",
-	// "dublin_20":       "dublin-20-dublin",
-	// "dublin_22":       "dublin-22-dublin",
-	// "dublin_24":       "dublin-24-dublin",
+	//"belfast": "belfast-city",
+	// "cork_county": "cork",
+	"Cork": "cork-city",
+	///"dublin_county": "dublin",
+	"Dublin":       "dublin-city",
+	"Dublin North": "north-dublin-city-dublin",
+	"Dublin South": "south-dublin-city-dublin",
+	"Dublin 01":    "dublin-1-dublin",
+	"Dublin 02":    "dublin-2-dublin",
+	"Dublin 03":    "dublin-3-dublin",
+	"Dublin 04":    "dublin-4-dublin",
+	"Dublin 05":    "dublin-5-dublin",
+	"Dublin 06":    "dublin-6-dublin",
+	"Dublin 07":    "dublin-7-dublin",
+	"Dublin 08":    "dublin-8-dublin",
+	"Dublin 09":    "dublin-9-dublin",
+	"Dublin 10":    "dublin-10-dublin",
+	"Dublin 11":    "dublin-11-dublin",
+	"Dublin 12":    "dublin-12-dublin",
+	"Dublin 13":    "dublin-13-dublin",
+	"Dublin 14":    "dublin-14-dublin",
+	"Dublin 15":    "dublin-15-dublin",
+	"Dublin 16":    "dublin-16-dublin",
+	"Dublin 17":    "dublin-17-dublin",
+	"Dublin 18":    "dublin-18-dublin",
+	"Dublin 20":    "dublin-20-dublin",
+	"Dublin 22":    "dublin-22-dublin",
 	// "galway_county":   "galway",
-	// "galway_city":     "galway-city",
+	"Galway": "galway-city",
 	// "limerick_county": "limerick",
-	// "limerick_city":   "limerick-city",
-	// TODO fill all options
+	"Limerick": "limerick-city",
 }
 
 // TODO move to "utils"? Create a specific Writer?
@@ -86,7 +80,7 @@ func CreateCriteriaFromAlert(alert model.Alert) Criteria {
 		Filters: []Filter{
 			{Key: "maxPrice", Value: strconv.Itoa(alert.MaxPrice)},
 			{Key: "minBedrooms", Value: strconv.Itoa(alert.MinBedrooms)},
-			{Key: "firstPosted", Value: "now-20m"},
+			{Key: "firstPosted", Value: "now-20m"}, // We force to only check very recent listings (last 20 mins), as only want properties from now on.
 		},
 	}
 }
@@ -95,8 +89,6 @@ func (criteria *Criteria) buildQuery(baseUrl string) (string, error) {
 	if !criteria.isValid() { // TODO validate on object creation?
 		return "", errors.New("Criteria is not valid") // TODO create custom error
 	}
-	// TODO add Filter with firstPublishDate_from. Maybe try "now-1h".
-	// [https://www.daft.ie]/property-for-rent/dublin-city?rentalPrice_to=1600&firstPublishDate_from=now-1d
 
 	query := fmt.Sprintf(
 		"%s/%s/%s%s",
@@ -112,12 +104,12 @@ func (criteria *Criteria) buildQuery(baseUrl string) (string, error) {
 func (criteria *Criteria) isValid() (ok bool) {
 	var valid bool
 
-	_, valid = searchTypesMap[criteria.SearchType]
+	_, valid = SearchTypesMap[criteria.SearchType]
 	if !valid {
 		return false
 	}
 
-	_, valid = locationsMap[criteria.Location]
+	_, valid = LocationsMap[criteria.Location]
 	if !valid {
 		return false
 	}
@@ -133,12 +125,12 @@ func (criteria *Criteria) isValid() (ok bool) {
 
 // TODO create a DaftMapper.
 func (criteria *Criteria) mapSearchType() string {
-	return searchTypesMap[criteria.SearchType]
+	return SearchTypesMap[criteria.SearchType]
 }
 
 // TODO create a DaftMapper.
 func (criteria *Criteria) mapLocation() string {
-	return locationsMap[criteria.Location]
+	return LocationsMap[criteria.Location]
 }
 
 // // TODO create a DaftMapper.

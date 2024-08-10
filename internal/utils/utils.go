@@ -1,6 +1,8 @@
 package utils
 
-import "strconv"
+import (
+	"strconv"
+)
 
 func StringToInt(textValue string) int {
 	int64Value, err := strconv.ParseInt(textValue, 10, 64)
@@ -54,4 +56,13 @@ func DiffSlice[T any, U any](sliceFrom []T, sliceCompare []U, fn func(T, U) bool
 	}
 
 	return diffSlice
+}
+
+// MapKeysToSlice extracts all the keys in a map and creates a slice from those values.
+func MapKeysToSlice[K comparable, V any](srcMap map[K]V) []K {
+	keysSlice := make([]K, 0, len(srcMap))
+	for key := range srcMap {
+		keysSlice = append(keysSlice, key)
+	}
+	return keysSlice
 }
